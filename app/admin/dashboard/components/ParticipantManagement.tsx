@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, X } from "lucide-react";
 
 type Participant = {
   id: string;
@@ -15,6 +15,9 @@ export default function ParticipantManagement() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  const [showImport, setShowImport] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchParticipants();
@@ -41,6 +44,16 @@ export default function ParticipantManagement() {
     p.nama_lengkap?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleImport = async () => {
+    if (!selectedFile) return;
+
+    // nanti kita isi parsing excel disini
+    alert("Import logic belum diaktifkan 🚀");
+
+    setShowImport(false);
+    setSelectedFile(null);
+  };
+
   return (
     <div className="space-y-6">
 
@@ -56,7 +69,10 @@ export default function ParticipantManagement() {
 
       {/* ACTION BUTTONS */}
       <div className="flex flex-wrap gap-3">
-        <button className="px-4 py-2 text-sm font-medium border border-slate-300 rounded-xl hover:bg-slate-50">
+        <button
+          onClick={() => setShowImport(true)}
+          className="px-4 py-2 text-sm font-medium border border-slate-300 rounded-xl hover:bg-slate-50"
+        >
           Import Peserta
         </button>
 
@@ -89,7 +105,7 @@ export default function ParticipantManagement() {
       </div>
 
       {/* TABLE */}
-      <div className="overflow-hidden border border-slate-200 rounded-2xl">
+      <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-600 uppercase text-xs tracking-wide">
             <tr>
@@ -149,6 +165,83 @@ export default function ParticipantManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* ================= IMPORT MODAL ================= */}
+      {showImport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowImport(false)}
+          />
+
+          <div className="relative bg-white w-full max-w-xl rounded-3xl shadow-2xl p-8 space-y-6">
+
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-slate-800">
+                Import Peserta Ujian
+              </h3>
+              <button
+                onClick={() => setShowImport(false)}
+                className="p-2 rounded-lg hover:bg-slate-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <button
+              className="w-full py-3 rounded-xl border border-slate-300 
+              hover:bg-slate-50 text-sm font-medium transition"
+            >
+              Download Format Excel
+            </button>
+
+            <label
+              className="flex flex-col items-center justify-center 
+              border-2 border-dashed border-slate-300 
+              rounded-2xl p-10 cursor-pointer 
+              hover:border-indigo-500 hover:bg-indigo-50 
+              transition"
+            >
+              <p className="text-slate-500 text-sm mb-2">
+                Drag & Drop file Excel di sini
+              </p>
+              <p className="text-xs text-slate-400">
+                Format yang diterima: .xlsx
+              </p>
+
+              <input
+                type="file"
+                accept=".xlsx"
+                hidden
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setSelectedFile(e.target.files[0]);
+                  }
+                }}
+              />
+            </label>
+
+            {selectedFile && (
+              <div className="text-sm bg-indigo-50 text-indigo-700 px-4 py-3 rounded-xl">
+                File dipilih: <span className="font-medium">{selectedFile.name}</span>
+              </div>
+            )}
+
+            <button
+              disabled={!selectedFile}
+              onClick={handleImport}
+              className="w-full py-3 text-white rounded-xl
+              bg-gradient-to-r from-indigo-600 to-purple-600
+              hover:from-indigo-700 hover:to-purple-700 transition
+              disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Import Peserta Ujian
+            </button>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
