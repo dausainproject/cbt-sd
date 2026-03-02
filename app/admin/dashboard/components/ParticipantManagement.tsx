@@ -1,10 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { Pencil, Trash2 } from "lucide-react";
 
+type Participant = {
+  id: string;
+  nama_lengkap: string;
+  no_peserta: string;
+  password: string;
+};
+
 export default function ParticipantManagement() {
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetchParticipants();
+  }, []);
+
+  const fetchParticipants = async () => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("data_siswa")
+      .select("id, nama_lengkap, no_peserta, password")
+      .order("nama_lengkap", { ascending: true });
+
+    if (error) {
+      console.error("Fetch error:", error.message);
+    } else {
+      setParticipants(data ?? []);
+    }
+
+    setLoading(false);
+  };
+
+  const filteredParticipants = participants.filter((p) =>
+    p.nama_lengkap?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -33,7 +68,11 @@ export default function ParticipantManagement() {
           Generate Password
         </button>
 
-        <button className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">
+        <button
+          className="px-4 py-2 text-sm font-medium text-white rounded-xl
+          bg-gradient-to-r from-indigo-600 to-purple-600
+          hover:from-indigo-700 hover:to-purple-700 transition"
+        >
           Cetak Kartu
         </button>
       </div>
@@ -63,27 +102,50 @@ export default function ParticipantManagement() {
           </thead>
 
           <tbody>
-            {/* Dummy Row dulu */}
-            <tr className="border-t hover:bg-slate-50 transition">
-              <td className="px-6 py-4">1</td>
-              <td className="px-6 py-4 font-medium text-slate-700">
-                Contoh Nama
-              </td>
-              <td className="px-6 py-4 text-slate-600">
-                2026001
-              </td>
-              <td className="px-6 py-4 text-slate-600">
-                123456
-              </td>
-              <td className="px-6 py-4 text-center space-x-3">
-                <button className="text-indigo-600 hover:text-indigo-800">
-                  <Pencil size={16} />
-                </button>
-                <button className="text-rose-600 hover:text-rose-800">
-                  <Trash2 size={16} />
-                </button>
-              </td>
-            </tr>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="text-center py-8 text-slate-500">
+                  Loading data...
+                </td>
+              </tr>
+            ) : filteredParticipants.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-8 text-slate-400">
+                  Data tidak ditemukan
+                </td>
+              </tr>
+            ) : (
+              filteredParticipants.map((participant, index) => (
+                <tr
+                  key={participant.id}
+                  className="border-t hover:bg-indigo-50 transition"
+                >
+                  <td className="px-6 py-4">{index + 1}</td>
+
+                  <td className="px-6 py-4 font-medium text-slate-700">
+                    {participant.nama_lengkap}
+                  </td>
+
+                  <td className="px-6 py-4 text-slate-600">
+                    {participant.no_peserta}
+                  </td>
+
+                  <td className="px-6 py-4 text-slate-600">
+                    {participant.password}
+                  </td>
+
+                  <td className="px-6 py-4 text-center space-x-3">
+                    <button className="text-indigo-600 hover:text-purple-600">
+                      <Pencil size={16} />
+                    </button>
+
+                    <button className="text-rose-500 hover:text-rose-600">
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
