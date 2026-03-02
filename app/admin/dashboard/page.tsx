@@ -3,17 +3,25 @@
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+import DashboardOverview from "./components/DashboardOverview";
+import UserManagement from "./components/UserManagement";
+import ParticipantManagement from "./components/ParticipantManagement";
+import SubjectManagement from "./components/SubjectManagement";
+import QuestionBank from "./components/QuestionBank";
+import AssessmentManagement from "./components/AssessmentManagement";
+import ExamMonitoring from "./components/ExamMonitoring";
+
 export default function AdminDashboard() {
   const router = useRouter();
+  const [activeMenu, setActiveMenu] = useState("dashboard");
 
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
-
       if (!data.session) {
         router.push("/admin/login");
       }
@@ -28,23 +36,39 @@ export default function AdminDashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-100 p-10">
-      <div className="max-w-4xl mx-auto bg-white p-10 rounded-3xl shadow-xl">
-        <h1 className="text-3xl font-bold text-slate-800 mb-6">
-          Dashboard Admin
-        </h1>
+    <main className="min-h-screen bg-slate-100 flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white shadow-lg p-6">
+        <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
 
-        <p className="text-slate-600 mb-8">
-          Selamat datang di sistem e-Asesmen.
-        </p>
+        <ul className="space-y-3">
+          <li onClick={() => setActiveMenu("dashboard")} className="cursor-pointer">Dashboard</li>
+          <li onClick={() => setActiveMenu("users")} className="cursor-pointer">Manajemen User</li>
+          <li onClick={() => setActiveMenu("participants")} className="cursor-pointer">Manajemen Peserta</li>
+          <li onClick={() => setActiveMenu("subjects")} className="cursor-pointer">Mata Pelajaran</li>
+          <li onClick={() => setActiveMenu("question-bank")} className="cursor-pointer">Bank Soal</li>
+          <li onClick={() => setActiveMenu("assessments")} className="cursor-pointer">Asesmen</li>
+          <li onClick={() => setActiveMenu("monitoring")} className="cursor-pointer">Monitoring Ujian</li>
+        </ul>
 
         <button
           onClick={handleLogout}
-          className="px-6 py-3 bg-rose-500 text-white rounded-xl font-semibold hover:bg-rose-600 transition"
+          className="mt-10 px-4 py-2 bg-rose-500 text-white rounded-xl"
         >
           Logout
         </button>
-      </div>
+      </aside>
+
+      {/* Content */}
+      <section className="flex-1 p-10">
+        {activeMenu === "dashboard" && <DashboardOverview />}
+        {activeMenu === "users" && <UserManagement />}
+        {activeMenu === "participants" && <ParticipantManagement />}
+        {activeMenu === "subjects" && <SubjectManagement />}
+        {activeMenu === "question-bank" && <QuestionBank />}
+        {activeMenu === "assessments" && <AssessmentManagement />}
+        {activeMenu === "monitoring" && <ExamMonitoring />}
+      </section>
     </main>
   );
 }
