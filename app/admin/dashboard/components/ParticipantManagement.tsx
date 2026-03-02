@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Pencil, Trash2, X } from "lucide-react";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 type Participant = {
   id: string;
@@ -18,6 +20,7 @@ export default function ParticipantManagement() {
 
   const [showImport, setShowImport] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     fetchParticipants();
@@ -31,11 +34,8 @@ export default function ParticipantManagement() {
       .select("id, nama_lengkap, no_peserta, password")
       .order("nama_lengkap", { ascending: true });
 
-    if (error) {
-      console.error("Fetch error:", error.message);
-    } else {
-      setParticipants(data ?? []);
-    }
+    if (error) console.error(error.message);
+    else setParticipants(data ?? []);
 
     setLoading(false);
   };
@@ -44,20 +44,102 @@ export default function ParticipantManagement() {
     p.nama_lengkap?.toLowerCase().includes(search.toLowerCase())
   );
 
+  // ================= DOWNLOAD TEMPLATE =================
+  const handleDownloadTemplate = () => {
+    const data = [
+      {
+        no: 1,
+        no_peserta: "2025001",
+        nama_lengkap: "Budi Santoso",
+        jk: "L",
+        kelas: "XII IPA 1",
+        password: "123456",
+        sesi: "1",
+      },
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Format Import");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const fileData = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(fileData, "Format_Import_Peserta.xlsx");
+  };
+
+  // ================= IMPORT LOGIC =================
   const handleImport = async () => {
     if (!selectedFile) return;
 
-    // nanti kita isi parsing excel disini
-    alert("Import logic belum diaktifkan 🚀");
+    setImporting(true);
 
-    setShowImport(false);
-    setSelectedFile(null);
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      const data = new Uint8Array(e.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData: any[] = XLSX.utils.sheet_to_json(sheet);
+
+      if (!jsonData.length) {
+        alert("File kosong!");
+        setImporting(false);
+        return;
+      }
+
+      // VALIDASI KOLOM
+      const requiredColumns = [
+        "no_peserta",
+        "nama_lengkap",
+        "password",
+      ];
+
+      const firstRow = Object.keys(jsonData[0]);
+      const isValid = requiredColumns.every((col) =>
+        firstRow.includes(col)
+      );
+
+      if (!isValid) {
+        alert("Format kolom tidak sesuai template!");
+        setImporting(false);
+        return;
+      }
+
+      const insertData = jsonData.map((row) => ({
+        no_peserta: row.no_peserta,
+        nama_lengkap: row.nama_lengkap,
+        password: row.password,
+      }));
+
+      const { error } = await supabase
+        .from("data_siswa")
+        .insert(insertData);
+
+      if (error) {
+        alert("Gagal import: " + error.message);
+      } else {
+        alert("Import berhasil 🚀");
+        fetchParticipants();
+      }
+
+      setImporting(false);
+      setShowImport(false);
+      setSelectedFile(null);
+    };
+
+    reader.readAsArrayBuffer(selectedFile);
   };
 
   return (
     <div className="space-y-6">
 
-      {/* HEADER */}
       <div>
         <h2 className="text-2xl font-semibold text-slate-800">
           Manajemen Peserta
@@ -67,7 +149,6 @@ export default function ParticipantManagement() {
         </p>
       </div>
 
-      {/* ACTION BUTTONS */}
       <div className="flex flex-wrap gap-3">
         <button
           onClick={() => setShowImport(true)}
@@ -75,39 +156,19 @@ export default function ParticipantManagement() {
         >
           Import Peserta
         </button>
-
-        <button className="px-4 py-2 text-sm font-medium border border-slate-300 rounded-xl hover:bg-slate-50">
-          Generate NoPes
-        </button>
-
-        <button className="px-4 py-2 text-sm font-medium border border-slate-300 rounded-xl hover:bg-slate-50">
-          Generate Password
-        </button>
-
-        <button
-          className="px-4 py-2 text-sm font-medium text-white rounded-xl
-          bg-gradient-to-r from-indigo-600 to-purple-600
-          hover:from-indigo-700 hover:to-purple-700 transition"
-        >
-          Cetak Kartu
-        </button>
       </div>
 
-      {/* SEARCH */}
-      <div>
-        <input
-          type="text"
-          placeholder="Cari nama peserta..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-80 px-4 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-      </div>
+      <input
+        type="text"
+        placeholder="Cari nama peserta..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full md:w-80 px-4 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      />
 
-      {/* TABLE */}
       <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600 uppercase text-xs tracking-wide">
+          <thead className="bg-slate-50 text-slate-600 uppercase text-xs">
             <tr>
               <th className="px-6 py-4 text-left">No</th>
               <th className="px-6 py-4 text-left">Nama Peserta</th>
@@ -120,44 +181,26 @@ export default function ParticipantManagement() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="text-center py-8 text-slate-500">
-                  Loading data...
-                </td>
-              </tr>
-            ) : filteredParticipants.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-8 text-slate-400">
-                  Data tidak ditemukan
+                <td colSpan={5} className="text-center py-8">
+                  Loading...
                 </td>
               </tr>
             ) : (
               filteredParticipants.map((participant, index) => (
-                <tr
-                  key={participant.id}
-                  className="border-t hover:bg-indigo-50 transition"
-                >
+                <tr key={participant.id} className="border-t hover:bg-indigo-50">
                   <td className="px-6 py-4">{index + 1}</td>
-
-                  <td className="px-6 py-4 font-medium text-slate-700">
+                  <td className="px-6 py-4 font-medium">
                     {participant.nama_lengkap}
                   </td>
-
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4">
                     {participant.no_peserta}
                   </td>
-
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4">
                     {participant.password}
                   </td>
-
                   <td className="px-6 py-4 text-center space-x-3">
-                    <button className="text-indigo-600 hover:text-purple-600">
-                      <Pencil size={16} />
-                    </button>
-
-                    <button className="text-rose-500 hover:text-rose-600">
-                      <Trash2 size={16} />
-                    </button>
+                    <Pencil size={16} className="inline text-indigo-600" />
+                    <Trash2 size={16} className="inline text-rose-500" />
                   </td>
                 </tr>
               ))
@@ -166,10 +209,9 @@ export default function ParticipantManagement() {
         </table>
       </div>
 
-      {/* ================= IMPORT MODAL ================= */}
+      {/* IMPORT MODAL */}
       {showImport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setShowImport(false)}
@@ -178,65 +220,43 @@ export default function ParticipantManagement() {
           <div className="relative bg-white w-full max-w-xl rounded-3xl shadow-2xl p-8 space-y-6">
 
             <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-slate-800">
+              <h3 className="text-xl font-semibold">
                 Import Peserta Ujian
               </h3>
-              <button
-                onClick={() => setShowImport(false)}
-                className="p-2 rounded-lg hover:bg-slate-100"
-              >
+              <button onClick={() => setShowImport(false)}>
                 <X size={18} />
               </button>
             </div>
 
             <button
-              className="w-full py-3 rounded-xl border border-slate-300 
-              hover:bg-slate-50 text-sm font-medium transition"
+              onClick={handleDownloadTemplate}
+              className="w-full py-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-sm font-medium"
             >
               Download Format Excel
             </button>
 
-            <label
-              className="flex flex-col items-center justify-center 
-              border-2 border-dashed border-slate-300 
-              rounded-2xl p-10 cursor-pointer 
-              hover:border-indigo-500 hover:bg-indigo-50 
-              transition"
-            >
-              <p className="text-slate-500 text-sm mb-2">
-                Drag & Drop file Excel di sini
-              </p>
-              <p className="text-xs text-slate-400">
-                Format yang diterima: .xlsx
-              </p>
-
-              <input
-                type="file"
-                accept=".xlsx"
-                hidden
-                onChange={(e) => {
-                  if (e.target.files) {
-                    setSelectedFile(e.target.files[0]);
-                  }
-                }}
-              />
-            </label>
+            <input
+              type="file"
+              accept=".xlsx"
+              onChange={(e) =>
+                e.target.files && setSelectedFile(e.target.files[0])
+              }
+            />
 
             {selectedFile && (
-              <div className="text-sm bg-indigo-50 text-indigo-700 px-4 py-3 rounded-xl">
-                File dipilih: <span className="font-medium">{selectedFile.name}</span>
-              </div>
+              <p className="text-sm text-indigo-600">
+                {selectedFile.name}
+              </p>
             )}
 
             <button
-              disabled={!selectedFile}
+              disabled={!selectedFile || importing}
               onClick={handleImport}
               className="w-full py-3 text-white rounded-xl
               bg-gradient-to-r from-indigo-600 to-purple-600
-              hover:from-indigo-700 hover:to-purple-700 transition
-              disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled:opacity-50"
             >
-              Import Peserta Ujian
+              {importing ? "Mengimport..." : "Import Peserta Ujian"}
             </button>
 
           </div>
