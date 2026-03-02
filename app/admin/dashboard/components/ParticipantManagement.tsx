@@ -27,18 +27,23 @@ export default function ParticipantManagement() {
   }, []);
 
   const fetchParticipants = async () => {
-    setLoading(true);
+  setLoading(true);
 
-    const { data, error } = await supabase
-      .from("data_siswa")
-      .select("id, nama_lengkap, no_peserta, password")
-      .order("nama_lengkap", { ascending: true });
+  const { data, error } = await supabase
+    .from("data_siswa")
+    .select("*")
+    .order("nama_lengkap", { ascending: true });
 
-    if (error) console.error(error.message);
-    else setParticipants(data ?? []);
+  if (error) {
+    alert("Error fetch: " + error.message);
+    console.error(error);
+  } else {
+    console.log("DATA:", data);
+    setParticipants(data ?? []);
+  }
 
-    setLoading(false);
-  };
+  setLoading(false);
+};
 
   const filteredParticipants = participants.filter((p) =>
     p.nama_lengkap?.toLowerCase().includes(search.toLowerCase())
