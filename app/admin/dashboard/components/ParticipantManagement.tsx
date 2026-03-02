@@ -76,46 +76,53 @@ export default function ParticipantManagement() {
 
   // ================= IMPORT LOGIC =================
   const handleImport = async () => {
-    if (!selectedFile) return;
+  if (!selectedFile) return;
 
-    setImporting(true);
+  setImporting(true);
 
-    const reader = new FileReader();
+  const reader = new FileReader();
 
-    reader.onload = async (e) => {
+  reader.onload = async (e) => {
+    try {
       const data = new Uint8Array(e.target?.result as ArrayBuffer);
       const workbook = XLSX.read(data, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData: any[] = XLSX.utils.sheet_to_json(sheet);
+      const rawData: any[] = XLSX.utils.sheet_to_json(sheet);
 
-      if (!jsonData.length) {
+      if (!rawData.length) {
         alert("File kosong!");
         setImporting(false);
         return;
       }
 
-      // VALIDASI KOLOM
-      const requiredColumns = [
-        "no_peserta",
-        "nama_lengkap",
-        "password",
-      ];
+      // 🔥 Normalize header (lowercase + trim)
+      const jsonData = rawData.map((row) => {
+        const newRow: any = {};
+        Object.keys(row).forEach((key) => {
+          newRow[key.toLowerCase().trim()] = row[key];
+        });
+        return newRow;
+      });
+	  
+	  // 🔥 Buang baris yang kosong / tidak lengkap
+	const cleanData = jsonData.filter(
+  (row) =>
+    row.no_peserta &&
+    row.nama_lengkap &&
+    row.jk &&
+    row.kelas &&
+    row.password &&
+    row.sesi
+	);
 
-      const firstRow = Object.keys(jsonData[0]);
-      const isValid = requiredColumns.every((col) =>
-        firstRow.includes(col)
-      );
-
-      if (!isValid) {
-        alert("Format kolom tidak sesuai template!");
-        setImporting(false);
-        return;
-      }
-
-      const insertData = jsonData.map((row) => ({
-        no_peserta: row.no_peserta,
-        nama_lengkap: row.nama_lengkap,
-        password: row.password,
+      // 🔥 Mapping sesuai struktur DB
+      const insertData = cleanData.map((row) => ({
+        no_peserta: String(row.no_peserta).trim(),
+        nama_lengkap: String(row.nama_lengkap).trim(),
+        jk: String(row.jk).trim(),
+        kelas: String(row.kelas).trim(),
+        password: String(row.password).trim(),
+        sesi: String(row.sesi).trim(),
       }));
 
       const { error } = await supabase
@@ -129,13 +136,18 @@ export default function ParticipantManagement() {
         fetchParticipants();
       }
 
-      setImporting(false);
-      setShowImport(false);
-      setSelectedFile(null);
-    };
+    } catch (err: any) {
+      alert("Terjadi kesalahan saat membaca file.");
+      console.error(err);
+    }
 
-    reader.readAsArrayBuffer(selectedFile);
+    setImporting(false);
+    setShowImport(false);
+    setSelectedFile(null);
   };
+
+  reader.readAsArrayBuffer(selectedFile);
+};
 
   return (
     <div className="space-y-6">
