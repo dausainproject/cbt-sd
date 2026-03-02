@@ -100,7 +100,7 @@ export default function AdminDashboard() {
       </aside>
 
       {/* CONTENT */}
-      <section className="flex-1 p-12 bg-slate-100">
+      <section className="flex-1 pt-6 px-8 pb-8 bg-slate-100">
         <div className="bg-white rounded-3xl shadow-xl p-10 min-h-[650px] transition-all">
           {activeMenu === "dashboard" && <DashboardOverview />}
           {activeMenu === "users" && <UserManagement />}
