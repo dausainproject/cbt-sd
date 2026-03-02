@@ -101,7 +101,7 @@ export default function AdminDashboard() {
 
       {/* CONTENT */}
       <section className="flex-1 pt-0 px-8 pb-8 bg-slate-100">
-        <div className="bg-white rounded-3xl shadow-xl p-10 min-h-[650px] transition-all">
+        <div key={activeMenu} className="bg-white rounded-3xl shadow-xl p-10 min-h-[650px] fade-in">
           {activeMenu === "dashboard" && <DashboardOverview />}
           {activeMenu === "users" && <UserManagement />}
           {activeMenu === "participants" && <ParticipantManagement />}
