@@ -16,11 +16,14 @@ export default function ParticipantManagement() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-
   const [showImport, setShowImport] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
-
+  const [showGenModal, setShowGenModal] = useState(false);
+  const [kodeSekolah, setKodeSekolah] = useState("");
+  const [loadingGen, setLoadingGen] = useState(false);
+  
+  
   useEffect(() => {
     fetchParticipants();
   }, []);
@@ -128,6 +131,55 @@ export default function ParticipantManagement() {
         password: String(row.password).trim(),
         sesi: String(row.sesi).trim(),
       }));
+
+//fungsi gen nopes
+const handleGenerateNopes = async () => {
+  if (kodeSekolah.length !== 6) {
+    alert("Kode sekolah harus 6 digit");
+    return;
+  }
+
+  setLoadingGen(true);
+
+  // Ambil semua siswa
+  const { data: siswa, error } = await supabase
+    .from("data_siswa")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    alert("Gagal ambil data");
+    setLoadingGen(false);
+    return;
+  }
+
+  const updatedData = siswa.map((item, index) => {
+    const nomorUrut = String(index + 1).padStart(2, "0");
+    return {
+      ...item,
+      no_peserta: `${kodeSekolah}${nomorUrut}`,
+    };
+  });
+
+  // Update satu per satu (karena PK berubah)
+  for (const row of updatedData) {
+    await supabase
+      .from("data_siswa")
+      .update({ no_peserta: row.no_peserta })
+      .eq("nama_lengkap", row.nama_lengkap);
+  }
+
+  alert("Nomor peserta berhasil digenerate");
+  setShowGenModal(false);
+  setLoadingGen(false);
+
+  fetchParticipants(); // reload table
+};
+
+
+
+
+
 
 // 🔥 Hilangkan duplikat no_peserta dalam 1 file
 const uniqueMap = new Map();
@@ -295,5 +347,43 @@ const uniqueInsertData = Array.from(uniqueMap.values());
       )}
 
     </div>
+
+{showGenModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded w-96">
+      <h2 className="text-lg font-semibold mb-4">Generate Nomor Peserta</h2>
+
+      <label className="block mb-2 text-sm">
+        Input Kode Sekolah (6 digit)
+      </label>
+      <input
+        type="text"
+        value={kodeSekolah}
+        onChange={(e) => setKodeSekolah(e.target.value)}
+        className="w-full border px-3 py-2 rounded mb-4"
+        placeholder="050658"
+        maxLength={6}
+      />
+
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={() => setShowGenModal(false)}
+          className="px-3 py-2 border rounded"
+        >
+          Batal
+        </button>
+
+        <button
+          onClick={handleGenerateNopes}
+          disabled={loadingGen}
+          className="bg-green-600 text-white px-4 py-2 rounded"
+        >
+          {loadingGen ? "Proses..." : "Gen Nopes"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+	
   );
 }
