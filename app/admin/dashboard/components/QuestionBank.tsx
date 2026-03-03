@@ -70,30 +70,6 @@ function renderJawaban(item: Soal) {
     return item.kunci;
   }
 
-async function handleReset() {
-  if (!asesmenId) {
-    alert("Tidak ada asesmen aktif");
-    return;
-  }
-
-  const konfirmasi = confirm("Yakin mau hapus semua soal?");
-  if (!konfirmasi) return;
-
-  const { error } = await supabase
-    .from("bank_soal")
-    .delete()
-    .eq("id_asesmen", asesmenId);
-
-  if (error) {
-    alert("Gagal reset soal");
-    console.log(error);
-  } else {
-    alert("Semua soal berhasil dihapus");
-    fetchData(); // refresh tabel
-  }
-}
-
-
   return "-";
 }
 async function handleImport() {
@@ -202,12 +178,9 @@ if (error) {
 >
   Import JSON
 </button>
-        <button
-  onClick={handleReset}
-  className="px-4 py-2 bg-red-600 text-white rounded"
->
-  Reset Soal
-</button>
+        <button className="px-4 py-2 bg-red-600 text-white rounded">
+          Reset Soal
+        </button>
       </div>
 
       {/* TABLE */}
