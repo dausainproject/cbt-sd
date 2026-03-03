@@ -300,17 +300,30 @@ async function handleReset() {
               />
             </div>
 
-            <div>
-              <label className="text-sm">Upload File JSON</label>
-              <input
-                type="file"
-                accept=".json"
-                onChange={(e) =>
-                  setFile(e.target.files ? e.target.files[0] : null)
-                }
-                className="w-full mt-1"
-              />
-            </div>
+            <div className="space-y-2">
+  <input
+    id="fileUpload"
+    type="file"
+    accept=".json"
+    onChange={(e) =>
+      setFile(e.target.files ? e.target.files[0] : null)
+    }
+    className="hidden"
+  />
+
+  <label
+    htmlFor="fileUpload"
+    className="inline-block px-4 py-2 bg-blue-600 text-white rounded cursor-pointer hover:bg-blue-700 transition"
+  >
+    Pilih File JSON
+  </label>
+
+  {file && (
+    <p className="text-sm text-gray-600">
+      {file.name}
+    </p>
+  )}
+</div>
 
             <div className="flex justify-end gap-3">
               <button
