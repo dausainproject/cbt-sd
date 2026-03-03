@@ -318,7 +318,7 @@ const uniqueInsertData = Array.from(uniqueMap.values());
             <tr>
               <th className="px-6 py-4 text-left">No</th>
               <th className="px-6 py-4 text-left">Nama Peserta</th>
-              <th className="px-6 py-4 text-left">Username</th>
+              <th className="px-6 py-4 text-left">No Peserta</th>
               <th className="px-6 py-4 text-left">Password</th>
               <th className="px-6 py-4 text-center">Aksi</th>
             </tr>
