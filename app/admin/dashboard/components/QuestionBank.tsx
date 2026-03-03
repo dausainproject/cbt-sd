@@ -17,6 +17,10 @@ export default function BankSoalPage() {
   const [asesmen, setAsesmen] = useState<string | null>(null);
   const [soal, setSoal] = useState<Soal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showImport, setShowImport] = useState(false);
+  const [namaAsesmen, setNamaAsesmen] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -66,6 +70,82 @@ function renderJawaban(item: Soal) {
 
   return "-";
 }
+async function handleImport() {
+  if (!namaAsesmen.trim() || !file) {
+    alert("Nama asesmen dan file wajib diisi");
+    return;
+  }
+
+  setImporting(true);
+
+  try {
+    const text = await file.text();
+    const json = JSON.parse(text);
+
+    if (!Array.isArray(json)) {
+      alert("Format JSON harus berupa array");
+      setImporting(false);
+      return;
+    }
+
+    // 🔥 1. Hapus semua asesmen lama (cascade hapus soal)
+    await supabase.from("data_asesmen").delete().neq("id", 0);
+
+    // 🔥 2. Insert asesmen baru
+    const { data: newAsesmen, error: asesmenError } = await supabase
+      .from("data_asesmen")
+      .insert({
+        nama_asesmen: namaAsesmen.trim(),
+      })
+      .select()
+      .single();
+
+    if (asesmenError || !newAsesmen) {
+      alert("Gagal membuat asesmen");
+      setImporting(false);
+      return;
+    }
+
+    // 🔥 3. Siapkan data soal
+    const soalToInsert = json.map((item: any) => {
+      if (!["pg", "pgk", "benar_salah"].includes(item.tipe)) {
+        throw new Error("Tipe soal tidak valid");
+      }
+
+      return {
+        id_asesmen: newAsesmen.id,
+        tipe: item.tipe,
+        pertanyaan: item.pertanyaan,
+        gambar: item.gambar || null,
+        pilihan: item.pilihan || null,
+        kunci: item.kunci,
+        bobot: item.bobot || 1,
+      };
+    });
+
+    const { error: soalError } = await supabase
+      .from("bank_soal")
+      .insert(soalToInsert);
+
+    if (soalError) {
+      alert("Gagal insert soal");
+      setImporting(false);
+      return;
+    }
+
+    alert("Import berhasil!");
+
+    setShowImport(false);
+    setNamaAsesmen("");
+    setFile(null);
+    fetchData();
+  } catch (err) {
+    alert("Terjadi kesalahan saat import");
+  }
+
+  setImporting(false);
+}
+
   return (
     <div className="p-6 space-y-6">
       {/* HEADER */}
@@ -90,9 +170,12 @@ function renderJawaban(item: Soal) {
 
       {/* ACTION BUTTON */}
       <div className="flex gap-3">
-        <button className="px-4 py-2 bg-blue-600 text-white rounded">
-          Import JSON
-        </button>
+        <button
+  onClick={() => setShowImport(true)}
+  className="px-4 py-2 bg-blue-600 text-white rounded"
+>
+  Import JSON
+</button>
         <button className="px-4 py-2 bg-red-600 text-white rounded">
           Reset Soal
         </button>
@@ -167,5 +250,51 @@ function renderJawaban(item: Soal) {
         </table>
       </div>
     </div>
+	{showImport && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+    <div className="bg-white p-6 rounded w-[400px] space-y-4">
+      <h2 className="text-lg font-semibold">Import Soal</h2>
+
+      <div>
+        <label className="text-sm">Nama Asesmen</label>
+        <input
+          type="text"
+          value={namaAsesmen}
+          onChange={(e) => setNamaAsesmen(e.target.value)}
+          className="w-full border p-2 rounded mt-1"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm">Upload File JSON</label>
+        <input
+          type="file"
+          accept=".json"
+          onChange={(e) =>
+            setFile(e.target.files ? e.target.files[0] : null)
+          }
+          className="w-full mt-1"
+        />
+      </div>
+
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={() => setShowImport(false)}
+          className="px-3 py-2 border rounded"
+        >
+          Batal
+        </button>
+
+        <button
+          onClick={handleImport}
+          disabled={importing}
+          className="px-3 py-2 bg-blue-600 text-white rounded"
+        >
+          {importing ? "Importing..." : "Import"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
   );
 }
