@@ -249,52 +249,54 @@ async function handleImport() {
           </tbody>
         </table>
       </div>
+
+      {showImport && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+          <div className="bg-white p-6 rounded w-[400px] space-y-4">
+            <h2 className="text-lg font-semibold">Import Soal</h2>
+
+            <div>
+              <label className="text-sm">Nama Asesmen</label>
+              <input
+                type="text"
+                value={namaAsesmen}
+                onChange={(e) => setNamaAsesmen(e.target.value)}
+                className="w-full border p-2 rounded mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm">Upload File JSON</label>
+              <input
+                type="file"
+                accept=".json"
+                onChange={(e) =>
+                  setFile(e.target.files ? e.target.files[0] : null)
+                }
+                className="w-full mt-1"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowImport(false)}
+                className="px-3 py-2 border rounded"
+              >
+                Batal
+              </button>
+
+              <button
+                onClick={handleImport}
+                disabled={importing}
+                className="px-3 py-2 bg-blue-600 text-white rounded"
+              >
+                {importing ? "Importing..." : "Import"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-	{showImport && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div className="bg-white p-6 rounded w-[400px] space-y-4">
-      <h2 className="text-lg font-semibold">Import Soal</h2>
-
-      <div>
-        <label className="text-sm">Nama Asesmen</label>
-        <input
-          type="text"
-          value={namaAsesmen}
-          onChange={(e) => setNamaAsesmen(e.target.value)}
-          className="w-full border p-2 rounded mt-1"
-        />
-      </div>
-
-      <div>
-        <label className="text-sm">Upload File JSON</label>
-        <input
-          type="file"
-          accept=".json"
-          onChange={(e) =>
-            setFile(e.target.files ? e.target.files[0] : null)
-          }
-          className="w-full mt-1"
-        />
-      </div>
-
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => setShowImport(false)}
-          className="px-3 py-2 border rounded"
-        >
-          Batal
-        </button>
-
-        <button
-          onClick={handleImport}
-          disabled={importing}
-          className="px-3 py-2 bg-blue-600 text-white rounded"
-        >
-          {importing ? "Importing..." : "Import"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+	
   );
 }
