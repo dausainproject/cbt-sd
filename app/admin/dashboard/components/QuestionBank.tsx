@@ -51,7 +51,21 @@ export default function BankSoalPage() {
   }
 
   const totalBobot = soal.reduce((acc, s) => acc + (s.bobot || 0), 0);
+function renderJawaban(item: Soal) {
+  if (item.tipe === "pg" && typeof item.kunci === "string") {
+    return item.kunci;
+  }
 
+  if (item.tipe === "pgk" && Array.isArray(item.kunci)) {
+    return item.kunci.join(", ");
+  }
+
+  if (item.tipe === "benar_salah") {
+    return item.kunci;
+  }
+
+  return "-";
+}
   return (
     <div className="p-6 space-y-6">
       {/* HEADER */}
@@ -115,18 +129,33 @@ export default function BankSoalPage() {
               soal.map((item, index) => (
                 <tr key={item.id} className="border-t">
                   <td className="p-2">{index + 1}</td>
-                  <td className="p-2 max-w-xs truncate">
-                    {item.pertanyaan}
-                  </td>
+                  <td className="p-2 max-w-xs">
+  <div className="truncate">{item.pertanyaan}</div>
+  {item.pilihan && (
+    <div className="text-xs text-gray-500 mt-1">
+      {Object.entries(item.pilihan).map(([key, val]) => (
+        <div key={key}>
+          {key}. {String(val)}
+        </div>
+      ))}
+    </div>
+  )}
+</td>
                   <td className="p-2">
                     {item.gambar ? "Ada" : "-"}
                   </td>
-                  <td className="p-2">{item.tipe}</td>
+                  <td className="p-2 capitalize">
+  {item.tipe === "pg"
+    ? "PG"
+    : item.tipe === "pgk"
+    ? "PGK"
+    : item.tipe === "benar_salah"
+    ? "Benar/Salah"
+    : item.tipe}
+</td>
                   <td className="p-2">
-                    {item.tipe === "pg"
-                      ? JSON.stringify(item.kunci)
-                      : "-"}
-                  </td>
+  {renderJawaban(item)}
+</td>
                   <td className="p-2">{item.bobot}</td>
                   <td className="p-2">
                     <button className="text-blue-600">Edit</button>
