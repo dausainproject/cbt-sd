@@ -225,8 +225,16 @@ if (error) {
   )}
 </td>
                   <td className="p-2">
-                    {item.gambar ? "Ada" : "-"}
-                  </td>
+  {item.gambar ? (
+    <img
+      src={item.gambar}
+      alt="gambar soal"
+      className="w-24 h-auto rounded border"
+    />
+  ) : (
+    "-"
+  )}
+</td>
                   <td className="p-2 capitalize">
   {item.tipe === "pg"
     ? "PG"
