@@ -7,9 +7,8 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
 type Participant = {
-  id: string;
-  nama_lengkap: string;
   no_peserta: string;
+  nama_lengkap: string;
   password: string;
 };
 
@@ -130,9 +129,17 @@ export default function ParticipantManagement() {
         sesi: String(row.sesi).trim(),
       }));
 
+// 🔥 Hilangkan duplikat no_peserta dalam 1 file
+const uniqueMap = new Map();
+
+insertData.forEach((item) => {
+  uniqueMap.set(item.no_peserta, item);
+});
+
+const uniqueInsertData = Array.from(uniqueMap.values());
       const { error } = await supabase
-        .from("data_siswa")
-        .insert(insertData);
+  .from("data_siswa")
+  .upsert(uniqueInsertData, { onConflict: "no_peserta" });
 
       if (error) {
         alert("Gagal import: " + error.message);
@@ -204,7 +211,7 @@ export default function ParticipantManagement() {
               </tr>
             ) : (
               filteredParticipants.map((participant, index) => (
-                <tr key={participant.id} className="border-t hover:bg-indigo-50">
+                <tr key={participant.no_peserta} className="border-t hover:bg-indigo-50">
                   <td className="px-6 py-4">{index + 1}</td>
                   <td className="px-6 py-4 font-medium">
                     {participant.nama_lengkap}
