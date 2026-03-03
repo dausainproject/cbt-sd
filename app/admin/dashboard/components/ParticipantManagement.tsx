@@ -173,14 +173,21 @@ const uniqueInsertData = Array.from(uniqueMap.values());
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          onClick={() => setShowImport(true)}
-          className="px-4 py-2 text-sm font-medium border border-slate-300 rounded-xl hover:bg-slate-50"
-        >
-          Import Peserta
-        </button>
-      </div>
+      <div className="flex gap-2">
+  <button
+    onClick={handleImport}
+    className="bg-blue-600 text-white px-4 py-2 rounded"
+  >
+    Import Peserta
+  </button>
+
+  <button
+    onClick={() => setShowGenModal(true)}
+    className="bg-green-600 text-white px-4 py-2 rounded"
+  >
+    Gen Nopes
+  </button>
+</div>
 
       <input
         type="text"
