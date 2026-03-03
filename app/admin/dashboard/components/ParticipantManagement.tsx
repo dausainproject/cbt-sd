@@ -214,176 +214,51 @@ const uniqueInsertData = Array.from(uniqueMap.values());
 };
 
   return (
+  <>
     <div className="space-y-6">
+      ... SEMUA ISI HALAMAN LO ...
+      ... IMPORT MODAL ...
+    </div>
 
-      <div>
-        <h2 className="text-2xl font-semibold text-slate-800">
-          Manajemen Peserta
-        </h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Kelola seluruh akun peserta ujian
-        </p>
-      </div>
+    {showGenModal && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded w-96">
+          <h2 className="text-lg font-semibold mb-4">
+            Generate Nomor Peserta
+          </h2>
 
-      <div className="flex gap-2">
-  <button
-    onClick={handleImport}
-    className="bg-blue-600 text-white px-4 py-2 rounded"
-  >
-    Import Peserta
-  </button>
+          <label className="block mb-2 text-sm">
+            Input Kode Sekolah (6 digit)
+          </label>
 
-  <button
-    onClick={() => setShowGenModal(true)}
-    className="bg-green-600 text-white px-4 py-2 rounded"
-  >
-    Gen Nopes
-  </button>
-</div>
-
-      <input
-        type="text"
-        placeholder="Cari nama peserta..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full md:w-80 px-4 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      />
-
-      <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600 uppercase text-xs">
-            <tr>
-              <th className="px-6 py-4 text-left">No</th>
-              <th className="px-6 py-4 text-left">Nama Peserta</th>
-              <th className="px-6 py-4 text-left">Username</th>
-              <th className="px-6 py-4 text-left">Password</th>
-              <th className="px-6 py-4 text-center">Aksi</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="text-center py-8">
-                  Loading...
-                </td>
-              </tr>
-            ) : (
-              filteredParticipants.map((participant, index) => (
-                <tr key={participant.no_peserta} className="border-t hover:bg-indigo-50">
-                  <td className="px-6 py-4">{index + 1}</td>
-                  <td className="px-6 py-4 font-medium">
-                    {participant.nama_lengkap}
-                  </td>
-                  <td className="px-6 py-4">
-                    {participant.no_peserta}
-                  </td>
-                  <td className="px-6 py-4">
-                    {participant.password}
-                  </td>
-                  <td className="px-6 py-4 text-center space-x-3">
-                    <Pencil size={16} className="inline text-indigo-600" />
-                    <Trash2 size={16} className="inline text-rose-500" />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* IMPORT MODAL */}
-      {showImport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowImport(false)}
+          <input
+            type="text"
+            value={kodeSekolah}
+            onChange={(e) => setKodeSekolah(e.target.value)}
+            className="w-full border px-3 py-2 rounded mb-4"
+            placeholder="050658"
+            maxLength={6}
           />
 
-          <div className="relative bg-white w-full max-w-xl rounded-3xl shadow-2xl p-8 space-y-6">
-
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold">
-                Import Peserta Ujian
-              </h3>
-              <button onClick={() => setShowImport(false)}>
-                <X size={18} />
-              </button>
-            </div>
-
+          <div className="flex justify-end gap-2">
             <button
-              onClick={handleDownloadTemplate}
-              className="w-full py-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-sm font-medium"
+              onClick={() => setShowGenModal(false)}
+              className="px-3 py-2 border rounded"
             >
-              Download Format Excel
+              Batal
             </button>
 
-            <input
-              type="file"
-              accept=".xlsx"
-              onChange={(e) =>
-                e.target.files && setSelectedFile(e.target.files[0])
-              }
-            />
-
-            {selectedFile && (
-              <p className="text-sm text-indigo-600">
-                {selectedFile.name}
-              </p>
-            )}
-
             <button
-              disabled={!selectedFile || importing}
-              onClick={handleImport}
-              className="w-full py-3 text-white rounded-xl
-              bg-gradient-to-r from-indigo-600 to-purple-600
-              disabled:opacity-50"
+              onClick={handleGenerateNopes}
+              disabled={loadingGen}
+              className="bg-green-600 text-white px-4 py-2 rounded"
             >
-              {importing ? "Mengimport..." : "Import Peserta Ujian"}
+              {loadingGen ? "Proses..." : "Gen Nopes"}
             </button>
-
           </div>
         </div>
-      )}
-
-    </div>
-
-{showGenModal && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div className="bg-white p-6 rounded w-96">
-      <h2 className="text-lg font-semibold mb-4">Generate Nomor Peserta</h2>
-
-      <label className="block mb-2 text-sm">
-        Input Kode Sekolah (6 digit)
-      </label>
-      <input
-        type="text"
-        value={kodeSekolah}
-        onChange={(e) => setKodeSekolah(e.target.value)}
-        className="w-full border px-3 py-2 rounded mb-4"
-        placeholder="050658"
-        maxLength={6}
-      />
-
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={() => setShowGenModal(false)}
-          className="px-3 py-2 border rounded"
-        >
-          Batal
-        </button>
-
-        <button
-          onClick={handleGenerateNopes}
-          disabled={loadingGen}
-          className="bg-green-600 text-white px-4 py-2 rounded"
-        >
-          {loadingGen ? "Proses..." : "Gen Nopes"}
-        </button>
       </div>
-    </div>
-  </div>
-)}
-	
-  );
+    )}
+  </>
+);
 }
