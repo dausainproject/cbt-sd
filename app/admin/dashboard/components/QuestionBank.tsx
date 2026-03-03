@@ -92,19 +92,19 @@ async function handleImport() {
     await supabase.from("data_asesmen").delete().neq("id", 0);
 
     // 🔥 2. Insert asesmen baru
-    const { data: newAsesmen, error: asesmenError } = await supabase
-      .from("data_asesmen")
-      .insert({
-        nama_asesmen: namaAsesmen.trim(),
-      })
-      .select()
-      .single();
+    const { data: newAsesmen, error } = await supabase
+  .from("data_asesmen")
+  .insert({
+    nama_asesmen: namaAsesmen,
+  })
+  .select()
+  .single();
 
-    if (asesmenError || !newAsesmen) {
-      alert("Gagal membuat asesmen");
-      setImporting(false);
-      return;
-    }
+if (error) {
+  console.log("ERROR DETAIL:", error);
+  alert(error.message);
+  return;
+}
 
     // 🔥 3. Siapkan data soal
     const soalToInsert = json.map((item: any) => {
