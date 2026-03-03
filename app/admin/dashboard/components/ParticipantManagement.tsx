@@ -215,10 +215,129 @@ const uniqueInsertData = Array.from(uniqueMap.values());
   return (
   <>
     <div className="space-y-6">
-      ... SEMUA ISI HALAMAN LO ...
-      ... IMPORT MODAL ...
+
+      <div>
+        <h2 className="text-2xl font-semibold text-slate-800">
+          Manajemen Peserta
+        </h2>
+        <p className="text-sm text-slate-500 mt-1">
+          Kelola seluruh akun peserta ujian
+        </p>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => setShowImport(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Import Peserta
+        </button>
+
+        <button
+          onClick={() => setShowGenModal(true)}
+          className="bg-green-600 text-white px-4 py-2 rounded"
+        >
+          Gen Nopes
+        </button>
+      </div>
+
+      <input
+        type="text"
+        placeholder="Cari nama peserta..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full md:w-80 px-4 py-2 text-sm border border-slate-300 rounded-xl"
+      />
+
+      <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-600 uppercase text-xs">
+            <tr>
+              <th className="px-6 py-4 text-left">No</th>
+              <th className="px-6 py-4 text-left">Nama Peserta</th>
+              <th className="px-6 py-4 text-left">Username</th>
+              <th className="px-6 py-4 text-left">Password</th>
+              <th className="px-6 py-4 text-center">Aksi</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="text-center py-8">
+                  Loading...
+                </td>
+              </tr>
+            ) : (
+              filteredParticipants.map((participant, index) => (
+                <tr key={participant.no_peserta} className="border-t">
+                  <td className="px-6 py-4">{index + 1}</td>
+                  <td className="px-6 py-4 font-medium">
+                    {participant.nama_lengkap}
+                  </td>
+                  <td className="px-6 py-4">
+                    {participant.no_peserta}
+                  </td>
+                  <td className="px-6 py-4">
+                    {participant.password}
+                  </td>
+                  <td className="px-6 py-4 text-center space-x-3">
+                    <Pencil size={16} className="inline text-indigo-600" />
+                    <Trash2 size={16} className="inline text-rose-500" />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* IMPORT MODAL */}
+      {showImport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowImport(false)}
+          />
+
+          <div className="relative bg-white w-full max-w-xl rounded-3xl shadow-2xl p-8 space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold">
+                Import Peserta Ujian
+              </h3>
+              <button onClick={() => setShowImport(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <button
+              onClick={handleDownloadTemplate}
+              className="w-full py-3 rounded-xl border border-slate-300"
+            >
+              Download Format Excel
+            </button>
+
+            <input
+              type="file"
+              accept=".xlsx"
+              onChange={(e) =>
+                e.target.files && setSelectedFile(e.target.files[0])
+              }
+            />
+
+            <button
+              disabled={!selectedFile || importing}
+              onClick={handleImport}
+              className="w-full py-3 text-white rounded-xl bg-indigo-600 disabled:opacity-50"
+            >
+              {importing ? "Mengimport..." : "Import Peserta Ujian"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
 
+    {/* GEN NOPES MODAL */}
     {showGenModal && (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-white p-6 rounded w-96">
