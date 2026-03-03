@@ -20,8 +20,11 @@ export default function ParticipantManagement() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [showGenModal, setShowGenModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [loadingPassword, setLoadingPassword] = useState(false);
   const [kodeSekolah, setKodeSekolah] = useState("");
   const [loadingGen, setLoadingGen] = useState(false);
+  
   
   
   useEffect(() => {
@@ -91,7 +94,58 @@ const handleGenerateNopes = async () => {
   fetchParticipants(); // reload table
 };
 
+const generateRandomPassword = () => {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
+  let result = "";
+  const used = new Set();
+
+  while (result.length < 8) {
+    const randomChar =
+      chars[Math.floor(Math.random() * chars.length)];
+
+    if (!used.has(randomChar)) {
+      used.add(randomChar);
+      result += randomChar;
+    }
+  }
+
+  return result + "*";
+};
+
+const handleGeneratePassword = async () => {
+  if (!participants.length) return;
+
+  const confirm = window.confirm(
+    "Yakin ingin generate ulang password seluruh peserta?"
+  );
+  if (!confirm) return;
+
+  setLoadingPassword(true);
+
+  try {
+    const updates = participants.map((p) => ({
+      no_peserta: p.no_peserta,
+      password: generateRandomPassword(),
+    }));
+
+    for (const u of updates) {
+      await supabase
+        .from("data_siswa")
+        .update({ password: u.password })
+        .eq("no_peserta", u.no_peserta);
+    }
+
+    alert("Password berhasil digenerate ulang!");
+    fetchParticipants();
+    setShowPasswordModal(false);
+  } catch (err) {
+    alert("Gagal generate password!");
+  } finally {
+    setLoadingPassword(false);
+  }
+};
 
 
 
@@ -226,20 +280,29 @@ const uniqueInsertData = Array.from(uniqueMap.values());
       </div>
 
       <div className="flex gap-2">
-        <button
-          onClick={() => setShowImport(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Import Peserta
-        </button>
+  <button
+    onClick={() => setShowImport(true)}
+    className="bg-blue-600 text-white px-4 py-2 rounded"
+  >
+    Import Peserta
+  </button>
 
-        <button
-          onClick={() => setShowGenModal(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded"
-        >
-          Gen Nopes
-        </button>
-      </div>
+  <button
+    onClick={() => setShowGenModal(true)}
+    className="bg-green-600 text-white px-4 py-2 rounded"
+  >
+    Gen Nopes
+  </button>
+
+  <button
+    onClick={() => setShowPasswordModal(true)}
+    className="bg-rose-600 text-white px-4 py-2 rounded"
+  >
+    Gen Password
+  </button>
+</div>
+	  
+	  
 
       <input
         type="text"
@@ -377,6 +440,40 @@ const uniqueInsertData = Array.from(uniqueMap.values());
         </div>
       </div>
     )}
+
+{showPasswordModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded w-96">
+      <h2 className="text-lg font-semibold mb-4">
+        Generate Password Seluruh Peserta
+      </h2>
+
+      <p className="text-sm text-slate-600 mb-6">
+        Semua password peserta akan diganti menjadi random 8 karakter unik
+        (A-Z, a-z, 0-9) dan diakhiri tanda *
+      </p>
+
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={() => setShowPasswordModal(false)}
+          className="px-3 py-2 border rounded"
+        >
+          Batal
+        </button>
+
+        <button
+          onClick={handleGeneratePassword}
+          disabled={loadingPassword}
+          className="bg-rose-600 text-white px-4 py-2 rounded"
+        >
+          {loadingPassword ? "Proses..." : "Generate"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}	
+	
+
   </>
 );
 }
