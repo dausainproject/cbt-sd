@@ -241,15 +241,25 @@ async function handleReset() {
                   <td className="p-2">{index + 1}</td>
                   <td className="p-2 max-w-xs">
   <div className="truncate">{item.pertanyaan}</div>
-  {item.pilihan && (
-    <div className="text-xs text-gray-500 mt-1">
-      {Object.entries(item.pilihan).map(([key, val]) => (
-        <div key={key}>
-          {key}. {String(val)}
-        </div>
-      ))}
-    </div>
-  )}
+  {item.pilihan && item.tipe !== "bs_kompleks" && typeof item.pilihan === "object" && !Array.isArray(item.pilihan) && (
+  <div className="text-xs text-gray-500 mt-1">
+    {Object.entries(item.pilihan).map(([key, val]) => (
+      <div key={key}>
+        {key}. {String(val)}
+      </div>
+    ))}
+  </div>
+)}
+
+{item.tipe === "bs_kompleks" && Array.isArray(item.pilihan) && (
+  <div className="text-xs text-gray-500 mt-1 space-y-1">
+    {item.pilihan.map((p: any) => (
+      <div key={p.kode}>
+        {p.kode}. {p.teks}
+      </div>
+    ))}
+  </div>
+)}
 </td>
                   <td className="p-2">
   {item.gambar ? (
