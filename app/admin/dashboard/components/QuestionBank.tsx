@@ -110,9 +110,9 @@ if (error) {
 
     // 🔥 3. Siapkan data soal
     const soalToInsert = json.map((item: any) => {
-      if (!["pg", "pgk", "benar_salah"].includes(item.tipe)) {
-        throw new Error("Tipe soal tidak valid");
-      }
+      if (!["pg", "pgk", "benar_salah", "bs_kompleks"].includes(item.tipe)) {
+  throw new Error("Tipe soal tidak valid");
+}
 
       return {
         id_asesmen: newAsesmen.id,
