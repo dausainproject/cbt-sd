@@ -210,67 +210,59 @@ export default function ExamMonitoring() {
       <div className="col-span-1 space-y-6">
 
         {/* KONFIGURASI */}
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="font-bold mb-4">Konfigurasi Ujian</h2>
+<div className="bg-white p-4 rounded shadow">
+  <h2 className="font-bold mb-4">Konfigurasi Ujian</h2>
 
-          <label className="text-sm">Pilih Kelas</label>
-          <select
-            className="w-full border p-2 mb-3"
-            onChange={(e) => setSelectedKelas(e.target.value)}
-          >
-            <option value="">-- pilih kelas --</option>
-            {kelas.map((k) => (
-              <option key={k}>{k}</option>
-            ))}
-          </select>
+  <label className="text-sm">Pilih Kelas</label>
+  <select
+    className="w-full border p-2 mb-3"
+    onChange={(e) => setSelectedKelas(e.target.value)}
+  >
+    <option value="">-- pilih kelas --</option>
+    {kelas.map((k) => (
+      <option key={k}>{k}</option>
+    ))}
+  </select>
 
-          <label className="text-sm">Pilih Asesmen</label>
-          <select
-            className="w-full border p-2 mb-3"
-            onChange={(e) => setSelectedAsesmen(Number(e.target.value))}
-          >
-            <option value="">-- pilih asesmen --</option>
-            {asesmen.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nama_asesmen}
-              </option>
-            ))}
-          </select>
+  <label className="text-sm">Pilih Asesmen</label>
+  <select
+    className="w-full border p-2 mb-3"
+    onChange={(e) => setSelectedAsesmen(Number(e.target.value))}
+  >
+    <option value="">-- pilih asesmen --</option>
+    {asesmen.map((a) => (
+      <option key={a.id} value={a.id}>
+        {a.nama_asesmen}
+      </option>
+    ))}
+  </select>
 
-          <label className="text-sm">Durasi</label>
-          <input
-            type="number"
-            className="w-full border p-2 mb-3"
-            value={durasi}
-            onChange={(e) => setDurasi(Number(e.target.value))}
-          />
+  <label className="text-sm">Durasi</label>
+  <input
+    type="number"
+    className="w-full border p-2 mb-3"
+    value={durasi}
+    onChange={(e) => setDurasi(Number(e.target.value))}
+  />
 
-          
-		  <input
-  value={token}
-  readOnly
-  className="border p-2 w-full mb-3"
-  placeholder="TOKEN"
-/>
+  <input
+    value={token}
+    readOnly
+    className="border p-2 w-full mb-3"
+    placeholder="TOKEN"
+  />
 
-<button
-  onClick={generateToken}
-  className="bg-blue-600 hover:bg-blue-700 text-white w-full py-2 rounded mb-3"
->
-  RILIS TOKEN
-</button>
+  <button
+    onClick={generateToken}
+    className="bg-blue-600 hover:bg-blue-700 text-white w-full py-2 rounded mb-3"
+  >
+    RILIS TOKEN
+  </button>
 
-<button className="bg-green-600 hover:bg-green-700 text-white w-full py-2 rounded">
-  MULAI UJIAN
-</button>
-		  
-		  
-          </div>
-
-          <button className="bg-green-600 text-white w-full py-2 rounded">
-            MULAI UJIAN
-          </button>
-        </div>
+  <button className="bg-green-600 hover:bg-green-700 text-white w-full py-2 rounded">
+    MULAI UJIAN
+  </button>
+</div>
 
         {/* STATISTIK */}
         <div className="bg-white p-4 rounded shadow">
