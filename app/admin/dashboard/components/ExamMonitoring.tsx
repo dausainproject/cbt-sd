@@ -265,15 +265,29 @@ export default function ExamMonitoring() {
 </div>
 
         {/* STATISTIK */}
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="font-bold mb-3">Statistik</h2>
+<div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 rounded shadow">
+  <h2 className="font-bold mb-3">Statistik</h2>
 
-          <p>Login : {statLogin}</p>
-          <p>Sedang Ujian : {statSedang}</p>
-          <p>Selesai : {statSelesai}</p>
-          <p>Warning : {statWarning}</p>
-        </div>
-      </div>
+  <div className="grid grid-cols-2 gap-2 text-sm">
+
+    <div className="bg-white/20 p-2 rounded">
+      Login : {statLogin}
+    </div>
+
+    <div className="bg-white/20 p-2 rounded">
+      Sedang Ujian : {statSedang}
+    </div>
+
+    <div className="bg-white/20 p-2 rounded">
+      Selesai : {statSelesai}
+    </div>
+
+    <div className="bg-white/20 p-2 rounded">
+      Warning : {statWarning}
+    </div>
+
+  </div>
+</div>
 
       {/* RIGHT SIDE */}
       <div className="col-span-2 bg-white p-4 rounded shadow">
