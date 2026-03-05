@@ -245,26 +245,25 @@ export default function ExamMonitoring() {
             onChange={(e) => setDurasi(Number(e.target.value))}
           />
 
-          <div className="flex items-center gap-2 mb-3">
-            <input
-              value={token}
-              readOnly
-              className="border p-2 flex-1"
-              placeholder="TOKEN"
-            />
+          <div className="mb-3">
 
-            <button
-              onClick={generateToken}
-              className="bg-blue-600 text-white px-3 py-2 rounded"
-            >
-              RILIS TOKEN
-            </button>
-          </div>
+<label className="text-sm font-medium">Token Ujian</label>
 
-          <button className="bg-green-600 text-white w-full py-2 rounded">
-            MULAI UJIAN
-          </button>
-        </div>
+<input
+  value={token}
+  readOnly
+  className="border p-2 w-full mt-1 mb-2 rounded bg-gray-100 text-center font-bold tracking-widest"
+  placeholder="TOKEN"
+/>
+
+<button
+  onClick={generateToken}
+  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded mb-2"
+>
+  RILIS TOKEN
+</button>
+
+</div>
 
         {/* STATISTIK */}
         <div className="bg-white p-4 rounded shadow">
