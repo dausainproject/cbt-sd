@@ -265,7 +265,7 @@ export default function ExamMonitoring() {
 </div>
 
         {/* STATISTIK */}
-<div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 rounded shadow">
+<div className="bg-gradient-to-r from-sky-300 to-sky-500 text-white p-4 rounded shadow">
   <h2 className="font-bold mb-3">Statistik</h2>
 
   <div className="grid grid-cols-2 gap-2 text-sm">
