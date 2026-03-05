@@ -264,6 +264,12 @@ export default function ExamMonitoring() {
 </button>
 
 </div>
+            <input
+              value={token}
+              readOnly
+              className="border p-2 flex-1"
+              placeholder="TOKEN"
+            />
 
             <button
               onClick={generateToken}
