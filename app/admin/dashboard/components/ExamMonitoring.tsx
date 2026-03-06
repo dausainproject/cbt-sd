@@ -425,8 +425,8 @@ useEffect(() => {
           </thead>
 
           <tbody>
-            {[...filtered]
-  .sort((a, b) => {
+  {[...filtered]
+.sort((a, b) => {
   if (a.pelanggaran > b.pelanggaran) return -1;
   if (a.pelanggaran < b.pelanggaran) return 1;
 
@@ -438,10 +438,7 @@ useEffect(() => {
 
   return order[a.status] - order[b.status];
 })
-
-  return order[a.status] - order[b.status];
-})
-  .map((p, i) => (
+.map((p, i) => (
               <tr
   key={p.no_peserta}
   className={
