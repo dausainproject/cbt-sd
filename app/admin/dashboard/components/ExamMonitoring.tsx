@@ -266,28 +266,25 @@ export default function ExamMonitoring() {
 
         {/* STATISTIK */}
 <div className="bg-sky-500 text-white p-4 rounded shadow">
+  <h2 className="font-bold mb-3">Statistik</h2>
 
-  <div className="bg-sky-100 text-sky-800 p-3 rounded shadow text-center">
-    <p className="text-xs">LOGIN</p>
-    <p className="text-2xl font-bold">{statLogin}</p>
-  </div>
+  <div className="grid grid-cols-2 gap-2 text-sm">
 
-  <div className="bg-yellow-100 text-yellow-800 p-3 rounded shadow text-center">
-    <p className="text-xs">SEDANG</p>
-    <p className="text-2xl font-bold">{statSedang}</p>
-  </div>
+    <div className="bg-white/20 p-2 rounded">
+      Login : {statLogin}
+    </div>
 
-  <div className="bg-green-100 text-green-800 p-3 rounded shadow text-center">
-    <p className="text-xs">SELESAI</p>
-    <p className="text-2xl font-bold">{statSelesai}</p>
-  </div>
+    <div className="bg-white/20 p-2 rounded">
+      Sedang Ujian : {statSedang}
+    </div>
 
-  <div className="bg-red-100 text-red-800 p-3 rounded shadow text-center">
-    <p className="text-xs">WARNING</p>
-    <p className="text-2xl font-bold">{statWarning}</p>
-  </div>
+    <div className="bg-white/20 p-2 rounded">
+      Selesai : {statSelesai}
+    </div>
 
-</div>
+    <div className="bg-white/20 p-2 rounded">
+      Warning : {statWarning}
+    </div>
 
   </div>
 </div>
