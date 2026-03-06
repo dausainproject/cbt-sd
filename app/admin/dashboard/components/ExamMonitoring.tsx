@@ -103,6 +103,31 @@ export default function ExamMonitoring() {
     setPeserta(result);
     hitungStat(result);
   }
+  
+  
+  async function mulaiUjian() {
+  if (!selectedAsesmen) {
+    alert("Pilih asesmen dulu");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("ujian_aktif")
+    .insert({
+      id_asesmen: selectedAsesmen,
+      waktu_mulai: new Date(),
+      durasi_menit: durasi,
+      status: "berjalan",
+    });
+
+  if (error) {
+    alert("Gagal memulai ujian");
+  } else {
+    alert("Ujian dimulai");
+  }
+}
+  
+  
 
   // ===============================
   // STATISTIK
@@ -291,9 +316,12 @@ useEffect(() => {
     RILIS TOKEN
   </button>
 
-  <button className="bg-green-600 hover:bg-green-700 text-white w-full py-2 rounded">
-    MULAI UJIAN
-  </button>
+  <button
+  onClick={mulaiUjian}
+  className="bg-green-600 hover:bg-green-700 text-white w-full py-2 rounded"
+>
+  MULAI UJIAN
+</button>
 </div>
 
 {/* COUNTDOWN UJIAN */}
