@@ -36,6 +36,7 @@ export default function ExamMonitoring() {
   const [statSedang, setStatSedang] = useState(0);
   const [statSelesai, setStatSelesai] = useState(0);
   const [statWarning, setStatWarning] = useState(0);
+  const [sisaWaktu, setSisaWaktu] = useState<number>(0);
 
   // ===============================
   // LOAD KELAS
@@ -199,6 +200,34 @@ export default function ExamMonitoring() {
     return <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded">Belum Login</span>;
   }
 
+
+
+
+//siswa waktu
+const ambilWaktu = async () => {
+    const { data } = await supabase
+      .from("ujian")
+      .select("waktu_mulai, durasi_menit")
+      .eq("id", ujianId)
+      .single();
+
+    if (!data) return;
+
+    const mulai = new Date(data.waktu_mulai).getTime();
+    const selesai = mulai + data.durasi_menit * 60 * 1000;
+
+    const interval = setInterval(() => {
+      const sekarang = Date.now();
+      const sisa = Math.floor((selesai - sekarang) / 1000);
+
+      setSisaWaktu(sisa > 0 ? sisa : 0);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  };
+
+  ambilWaktu();
+
   // ===============================
   // UI
   // ===============================
@@ -304,7 +333,7 @@ export default function ExamMonitoring() {
         />
 
         <table className="w-full text-sm border">
-          <thead className="bg-gray-100">
+          <thead className="bg-sky-100">
             <tr>
               <th className="border p-2">No</th>
               <th className="border p-2">Username</th>
