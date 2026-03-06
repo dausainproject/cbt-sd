@@ -203,12 +203,14 @@ export default function ExamMonitoring() {
 
 
 
-//siswa waktu
-const ambilWaktu = async () => {
+useEffect(() => {
+  if (!selectedAsesmen) return;
+
+  const ambilWaktu = async () => {
     const { data } = await supabase
       .from("ujian")
       .select("waktu_mulai, durasi_menit")
-      .eq("id", ujianId)
+      .eq("id", selectedAsesmen)
       .single();
 
     if (!data) return;
@@ -227,6 +229,7 @@ const ambilWaktu = async () => {
   };
 
   ambilWaktu();
+}, [selectedAsesmen]);
 
   // ===============================
   // UI
