@@ -317,7 +317,18 @@ export default function ExamMonitoring() {
 
           <tbody>
             {filtered.map((p, i) => (
-              <tr key={p.no_peserta}>
+              <tr
+  key={p.no_peserta}
+  className={
+    p.pelanggaran > 0
+      ? "bg-red-50"
+      : p.status === "sedang"
+      ? "bg-yellow-50"
+      : p.status === "selesai"
+      ? "bg-green-50"
+      : ""
+  }
+>
                 <td className="border p-2">{i + 1}</td>
                 <td className="border p-2">{p.no_peserta}</td>
                 <td className="border p-2">{p.nama_lengkap}</td>
