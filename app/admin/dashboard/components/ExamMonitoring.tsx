@@ -37,6 +37,8 @@ export default function ExamMonitoring() {
   const [statSelesai, setStatSelesai] = useState(0);
   const [statWarning, setStatWarning] = useState(0);
   const [sisaWaktu, setSisaWaktu] = useState<number>(0);
+  const [sesi, setSesi] = useState(1);
+const [jenisSesi, setJenisSesi] = useState("utama");
 
   // ===============================
   // LOAD KELAS
@@ -85,9 +87,10 @@ export default function ExamMonitoring() {
     if (!siswa) return;
 
     const { data: laporan } = await supabase
-      .from("laporan_ujian")
-      .select("*")
-      .eq("id_asesmen", selectedAsesmen);
+  .from("laporan_ujian")
+  .select("*")
+  .eq("id_asesmen", selectedAsesmen)
+  .eq("sesi", sesi);
 
     const result = siswa.map((s) => {
       const lap = laporan?.find((l) => l.no_peserta === s.no_peserta);
@@ -113,12 +116,14 @@ export default function ExamMonitoring() {
 
   const { error } = await supabase
     .from("ujian_aktif")
-    .insert({
-      id_asesmen: selectedAsesmen,
-      waktu_mulai: new Date(),
-      durasi_menit: durasi,
-      status: "berjalan",
-    });
+.insert({
+  id_asesmen: selectedAsesmen,
+  waktu_mulai: new Date(),
+  durasi_menit: durasi,
+  status: "berjalan",
+  sesi: sesi,
+  jenis_sesi: jenisSesi
+});
 
   if (error) {
     alert("Gagal memulai ujian");
@@ -197,7 +202,8 @@ export default function ExamMonitoring() {
       .from("laporan_ujian")
       .delete()
       .eq("no_peserta", no)
-      .eq("id_asesmen", selectedAsesmen);
+      .eq("id_asesmen", selectedAsesmen)
+.eq("sesi", sesi);
 
     loadPeserta();
   }
@@ -233,10 +239,13 @@ useEffect(() => {
 
   const ambilWaktu = async () => {
     const { data } = await supabase
-      .from("ujian")
-      .select("waktu_mulai, durasi_menit")
-      .eq("id", selectedAsesmen)
-      .single();
+      .from("ujian_aktif")
+.select("waktu_mulai,durasi_menit")
+.eq("id_asesmen", selectedAsesmen)
+.eq("sesi", sesi)
+.order("created_at", { ascending: false })
+.limit(1)
+.single();
 
     if (!data) return;
 
@@ -301,6 +310,29 @@ useEffect(() => {
     value={durasi}
     onChange={(e) => setDurasi(Number(e.target.value))}
   />
+
+//SESI UJIAN UTAMA DAN SUSUSLAN
+<label className="text-sm">Sesi Ujian</label>
+<select
+  className="w-full border p-2 mb-3"
+  value={sesi}
+  onChange={(e) => setSesi(Number(e.target.value))}
+>
+  <option value={1}>Sesi 1 (Utama)</option>
+  <option value={2}>Sesi 2 (Susulan)</option>
+  <option value={3}>Sesi 3</option>
+</select>
+
+<label className="text-sm">Jenis Sesi</label>
+<select
+  className="w-full border p-2 mb-3"
+  value={jenisSesi}
+  onChange={(e) => setJenisSesi(e.target.value)}
+>
+  <option value="utama">Ujian Utama</option>
+  <option value="susulan">Ujian Susulan</option>
+</select>
+
 
   <input
     value={token}
@@ -395,10 +427,20 @@ useEffect(() => {
           <tbody>
             {[...filtered]
   .sort((a, b) => {
-    if (a.status === "sedang") return -1;
-    if (b.status === "sedang") return 1;
-    return 0;
-  })
+  if (a.pelanggaran > b.pelanggaran) return -1;
+  if (a.pelanggaran < b.pelanggaran) return 1;
+
+  const order: any = {
+    sedang: 1,
+    belum_login: 2,
+    selesai: 3
+  };
+
+  return order[a.status] - order[b.status];
+})
+
+  return order[a.status] - order[b.status];
+})
   .map((p, i) => (
               <tr
   key={p.no_peserta}
