@@ -296,6 +296,23 @@ useEffect(() => {
   </button>
 </div>
 
+{/* COUNTDOWN UJIAN */}
+<div className="bg-sky-600 text-white p-4 rounded shadow text-center">
+  <p className="text-sm opacity-90">SISA WAKTU UJIAN</p>
+
+  <p className="text-3xl font-bold tracking-widest mt-1">
+    {Math.floor(sisaWaktu / 3600)
+      .toString()
+      .padStart(2, "0")}
+    :
+    {Math.floor((sisaWaktu % 3600) / 60)
+      .toString()
+      .padStart(2, "0")}
+    :
+    {(sisaWaktu % 60).toString().padStart(2, "0")}
+  </p>
+</div>
+
         {/* STATISTIK */}
 <div className="bg-sky-500 text-white p-4 rounded shadow">
   <h2 className="font-bold mb-3">Statistik</h2>
