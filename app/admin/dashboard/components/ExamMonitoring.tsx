@@ -116,17 +116,18 @@ const [jenisSesi, setJenisSesi] = useState("utama");
 
   const { error } = await supabase
     .from("ujian_aktif")
-.insert({
-  id_asesmen: selectedAsesmen,
-  waktu_mulai: new Date(),
-  durasi_menit: durasi,
-  status: "berjalan",
-  sesi: sesi,
-  jenis_sesi: jenisSesi
-});
+    .insert({
+      id_asesmen: selectedAsesmen,
+      waktu_mulai: new Date(),
+      durasi_menit: durasi,
+      status: "berjalan",
+      sesi: sesi,
+      jenis_sesi: jenisSesi
+    });
 
   if (error) {
-    alert("Gagal memulai ujian");
+    console.log(error);
+    alert("Gagal memulai ujian: " + error.message);
   } else {
     alert("Ujian dimulai");
   }
