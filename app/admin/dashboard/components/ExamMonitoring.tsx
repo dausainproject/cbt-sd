@@ -316,7 +316,13 @@ export default function ExamMonitoring() {
           </thead>
 
           <tbody>
-            {filtered.map((p, i) => (
+            {[...filtered]
+  .sort((a, b) => {
+    if (a.status === "sedang") return -1;
+    if (b.status === "sedang") return 1;
+    return 0;
+  })
+  .map((p, i) => (
               <tr
   key={p.no_peserta}
   className={
