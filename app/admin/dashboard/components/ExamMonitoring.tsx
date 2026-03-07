@@ -38,6 +38,7 @@ export default function ExamMonitoring() {
   const [statWarning, setStatWarning] = useState(0);
   const [sisaWaktu, setSisaWaktu] = useState<number>(0);
   const [sesi, setSesi] = useState(1);
+  const [ujianAktif, setUjianAktif] = useState(false);
 const [jenisSesi, setJenisSesi] = useState("utama");
 
   // ===============================
@@ -129,8 +130,9 @@ const [jenisSesi, setJenisSesi] = useState("utama");
     console.log(error);
     alert("Gagal memulai ujian: " + error.message);
   } else {
-    alert("Ujian dimulai");
-  }
+  alert("Ujian dimulai");
+  setUjianAktif(true);
+}
 }
   
   
@@ -351,9 +353,13 @@ useEffect(() => {
 
   <button
   onClick={mulaiUjian}
-  className="bg-green-600 hover:bg-green-700 text-white w-full py-2 rounded"
+  className={`w-full py-2 rounded text-white ${
+    ujianAktif
+      ? "bg-red-600 hover:bg-red-700"
+      : "bg-green-600 hover:bg-green-700"
+  }`}
 >
-  MULAI UJIAN
+  {ujianAktif ? "STOP UJIAN" : "MULAI UJIAN"}
 </button>
 </div>
 
