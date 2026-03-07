@@ -280,33 +280,48 @@ const [jenisSesi, setJenisSesi] = useState("utama");
 useEffect(() => {
   if (!selectedAsesmen) return;
 
+  let interval: any;
+
   const ambilWaktu = async () => {
     const { data } = await supabase
       .from("ujian_aktif")
-.select("waktu_mulai,durasi_menit")
-.eq("id_asesmen", selectedAsesmen)
-.eq("sesi", sesi)
-.order("created_at", { ascending: false })
-.limit(1)
-.single();
+      .select("waktu_mulai,durasi_menit,status")
+      .eq("id_asesmen", selectedAsesmen)
+      .eq("sesi", sesi)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
 
     if (!data) return;
+
+    // hanya jalan kalau ujian sedang berlangsung
+    if (data.status !== "berjalan") {
+      setSisaWaktu(0);
+      return;
+    }
 
     const mulai = new Date(data.waktu_mulai).getTime();
     const selesai = mulai + data.durasi_menit * 60 * 1000;
 
-    const interval = setInterval(() => {
+    interval = setInterval(() => {
       const sekarang = Date.now();
       const sisa = Math.floor((selesai - sekarang) / 1000);
 
-      setSisaWaktu(sisa > 0 ? sisa : 0);
+      if (sisa <= 0) {
+        setSisaWaktu(0);
+        clearInterval(interval);
+      } else {
+        setSisaWaktu(sisa);
+      }
     }, 1000);
-
-    return () => clearInterval(interval);
   };
 
   ambilWaktu();
-}, [selectedAsesmen]);
+
+  return () => {
+    if (interval) clearInterval(interval);
+  };
+}, [selectedAsesmen, sesi]);
 
   // ===============================
   // UI
