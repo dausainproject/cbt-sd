@@ -158,14 +158,15 @@ const [jenisSesi, setJenisSesi] = useState("utama");
   } else {
     alert("Ujian dimulai");
     setUjianAktif(true);
+	loadPeserta();
   }
 }
   
-  //stop ujian
-  async function stopUjian() {
+  // STOP UJIAN
+async function stopUjian() {
   if (!selectedAsesmen) return;
 
-  await supabase
+  const { error } = await supabase
     .from("ujian_aktif")
     .update({
       status: "selesai"
@@ -173,8 +174,20 @@ const [jenisSesi, setJenisSesi] = useState("utama");
     .eq("id_asesmen", selectedAsesmen)
     .eq("sesi", sesi);
 
+  if (error) {
+    console.log(error);
+    alert("Gagal menghentikan ujian");
+    return;
+  }
+
+  // reset timer di dashboard
+  setSisaWaktu(0);
+
   alert("Ujian dihentikan");
   setUjianAktif(false);
+
+  // refresh peserta
+  loadPeserta();
 }
 
   // ===============================
@@ -321,7 +334,7 @@ useEffect(() => {
   return () => {
     if (interval) clearInterval(interval);
   };
-}, [selectedAsesmen, sesi]);
+}, [selectedAsesmen, sesi, ujianAktif]);
 
   // ===============================
   // UI
