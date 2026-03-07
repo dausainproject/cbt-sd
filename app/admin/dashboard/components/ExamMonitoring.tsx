@@ -115,27 +115,67 @@ const [jenisSesi, setJenisSesi] = useState("utama");
     return;
   }
 
-  const { error } = await supabase
+  const { data: existing } = await supabase
     .from("ujian_aktif")
-    .insert({
-      id_asesmen: selectedAsesmen,
-      waktu_mulai: new Date(),
-      durasi_menit: durasi,
-      status: "berjalan",
-      sesi: sesi,
-      jenis_sesi: jenisSesi
-    });
+    .select("*")
+    .eq("id_asesmen", selectedAsesmen)
+    .eq("sesi", sesi)
+    .maybeSingle();
+
+  let error;
+
+  if (existing) {
+    const res = await supabase
+      .from("ujian_aktif")
+      .update({
+        waktu_mulai: new Date(),
+        durasi_menit: durasi,
+        status: "berjalan",
+        jenis_sesi: jenisSesi
+      })
+      .eq("id_asesmen", selectedAsesmen)
+      .eq("sesi", sesi);
+
+    error = res.error;
+  } else {
+    const res = await supabase
+      .from("ujian_aktif")
+      .insert({
+        id_asesmen: selectedAsesmen,
+        waktu_mulai: new Date(),
+        durasi_menit: durasi,
+        status: "berjalan",
+        sesi: sesi,
+        jenis_sesi: jenisSesi
+      });
+
+    error = res.error;
+  }
 
   if (error) {
     console.log(error);
     alert("Gagal memulai ujian: " + error.message);
   } else {
-  alert("Ujian dimulai");
-  setUjianAktif(true);
-}
+    alert("Ujian dimulai");
+    setUjianAktif(true);
+  }
 }
   
-  
+  //stop ujian
+  async function stopUjian() {
+  if (!selectedAsesmen) return;
+
+  await supabase
+    .from("ujian_aktif")
+    .update({
+      status: "selesai"
+    })
+    .eq("id_asesmen", selectedAsesmen)
+    .eq("sesi", sesi);
+
+  alert("Ujian dihentikan");
+  setUjianAktif(false);
+}
 
   // ===============================
   // STATISTIK
@@ -352,7 +392,7 @@ useEffect(() => {
   </button>
 
   <button
-  onClick={mulaiUjian}
+  onClick={ujianAktif ? stopUjian : mulaiUjian}
   className={`w-full py-2 rounded text-white ${
     ujianAktif
       ? "bg-red-600 hover:bg-red-700"
