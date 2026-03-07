@@ -382,7 +382,7 @@ useEffect(() => {
     onChange={(e) => setDurasi(Number(e.target.value))}
   />
 
-//SESI UJIAN UTAMA DAN SUSUSLAN
+
 <label className="text-sm">Sesi Ujian</label>
 <select
   className="w-full border p-2 mb-3"
