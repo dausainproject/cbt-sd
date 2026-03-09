@@ -232,12 +232,6 @@ async function stopUjian() {
 // ===============================
 
 async function generateToken() {
-
-  if (!selectedAsesmen) {
-    alert("Pilih asesmen dulu");
-    return;
-  }
-
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let result = "";
 
@@ -245,34 +239,23 @@ async function generateToken() {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
 
-  // hapus token lama
-  const { error: deleteError } = await supabase
-    .from("token_ujian")
-    .delete()
-    .eq("id_asesmen", selectedAsesmen);
-
-  if (deleteError) {
-    console.log(deleteError);
-  }
-
-  // insert token baru
-  const { data, error } = await supabase
-    .from("token_ujian")
-    .insert({
-      id_asesmen: selectedAsesmen,
-      token: result,
-      status: true,
-    })
-    .select();
-
-  console.log("INSERT RESULT:", data, error);
-
-  if (error) {
-    alert("Error Supabase: " + error.message);
-    return;
-  }
-
   setToken(result);
+
+  if (selectedAsesmen) {
+    const { data, error } = await supabase
+      .from("token_ujian")
+      .insert({
+        id_asesmen: selectedAsesmen,
+        token: result,
+        status: true,
+      });
+
+    if (error) {
+      console.log("Error Supabase:", error);
+    } else {
+      console.log("Token berhasil dibuat:", data);
+    }
+  }
 }
 
   // ===============================
