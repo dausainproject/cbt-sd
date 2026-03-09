@@ -4,7 +4,7 @@ type Soal = {
   id: number;
   pertanyaan: string;
   tipe: "pg" | "pgk" | "bs";
-  pilihan: any[];
+  pilihan: string[];
 };
 
 type Props = {

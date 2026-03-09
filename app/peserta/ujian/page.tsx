@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import SoalCard from "./components/soalcard";
+import SoalCard from "./components/SoalCard";
 
 type Soal = {
   id: number;
