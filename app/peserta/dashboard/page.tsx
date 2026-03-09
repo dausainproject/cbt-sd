@@ -45,12 +45,18 @@ export default function DashboardPeserta() {
     }
 
     // cek apakah ujian sedang aktif
-    const { data: ujianAktif } = await supabase
-      .from("ujian_aktif")
-      .select("*")
-      .eq("id_asesmen", data.id_asesmen)
-      .eq("status", "sedang")
-      .single();
+    const { data: ujianAktif, error: errorUjian } = await supabase
+  .from("ujian_aktif")
+  .select("*")
+  .eq("id_asesmen", data.id_asesmen)
+  .eq("status", "berjalan")
+  .single();
+
+if (errorUjian || !ujianAktif) {
+  alert("Ujian belum dimulai!");
+  setLoading(false);
+  return;
+}
 
     if (!ujianAktif) {
       alert("Ujian belum dimulai!");
