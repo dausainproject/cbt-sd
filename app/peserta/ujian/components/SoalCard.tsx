@@ -4,7 +4,7 @@ type Soal = {
   id: number;
   pertanyaan: string;
   tipe: "pg" | "pgk" | "bs";
-  pilihan: string[];
+  pilihan?: string[];
 };
 
 type Props = {
@@ -35,10 +35,12 @@ export default function SoalCard({ soal }: Props) {
 
 function SoalPG({ soal }: { soal: Soal }) {
 
+  const pilihan = Array.isArray(soal.pilihan) ? soal.pilihan : [];
+
   return (
     <div className="space-y-3">
 
-      {soal.pilihan?.map((p: any, i: number) => (
+      {pilihan.map((p, i) => (
 
         <label
           key={i}
@@ -67,10 +69,12 @@ function SoalPG({ soal }: { soal: Soal }) {
 
 function SoalPGK({ soal }: { soal: Soal }) {
 
+  const pilihan = Array.isArray(soal.pilihan) ? soal.pilihan : [];
+
   return (
     <div className="space-y-3">
 
-      {soal.pilihan?.map((p: any, i: number) => (
+      {pilihan.map((p, i) => (
 
         <label
           key={i}
@@ -96,10 +100,12 @@ function SoalPGK({ soal }: { soal: Soal }) {
 
 function SoalBS({ soal }: { soal: Soal }) {
 
+  const pilihan = Array.isArray(soal.pilihan) ? soal.pilihan : [];
+
   return (
     <div className="space-y-4">
 
-      {soal.pilihan?.map((p: any, i: number) => (
+      {pilihan.map((p, i) => (
 
         <div
           key={i}

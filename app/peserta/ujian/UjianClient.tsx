@@ -10,7 +10,7 @@ type Soal = {
   id_asesmen: number;
   pertanyaan: string;
   tipe: "pg" | "pgk" | "bs";
-  pilihan: any[];
+  pilihan: string[];
 };
 
 export default function UjianClient() {
@@ -44,9 +44,31 @@ export default function UjianClient() {
       return;
     }
 
-    if (data) {
-      setSoal(data);
+   if (data) {
+
+  const soalFix = data.map((s: any) => {
+
+    let pilihan = [];
+
+    if (Array.isArray(s.pilihan)) {
+      pilihan = s.pilihan;
+    } else if (typeof s.pilihan === "string") {
+      try {
+        pilihan = JSON.parse(s.pilihan);
+      } catch {
+        pilihan = [];
+      }
     }
+
+    return {
+      ...s,
+      pilihan
+    };
+
+  });
+
+  setSoal(soalFix);
+}
 
     setLoading(false);
   }
