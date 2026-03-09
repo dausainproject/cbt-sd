@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function DashboardPeserta() {
   const router = useRouter();
 
   const [peserta, setPeserta] = useState<any>(null);
   const [token, setToken] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const data = localStorage.getItem("peserta");
@@ -20,13 +22,44 @@ export default function DashboardPeserta() {
     setPeserta(JSON.parse(data));
   }, []);
 
-  const mulaiUjian = () => {
+  const mulaiUjian = async () => {
     if (!token) {
       alert("Masukkan token ujian!");
       return;
     }
 
-    router.push("/peserta/ujian?token=" + token);
+    setLoading(true);
+
+    // cek token di Supabase
+    const { data, error } = await supabase
+      .from("token_ujian")
+      .select("*")
+      .eq("token", token)
+      .eq("status", true)
+      .single();
+
+    if (error || !data) {
+      alert("Token ujian tidak valid!");
+      setLoading(false);
+      return;
+    }
+
+    // cek apakah ujian sedang aktif
+    const { data: ujianAktif } = await supabase
+      .from("ujian_aktif")
+      .select("*")
+      .eq("id_asesmen", data.id_asesmen)
+      .eq("status", "sedang")
+      .single();
+
+    if (!ujianAktif) {
+      alert("Ujian belum dimulai!");
+      setLoading(false);
+      return;
+    }
+
+    // masuk halaman ujian
+    router.push("/peserta/ujian?id=" + data.id_asesmen);
   };
 
   if (!peserta) return null;
@@ -63,9 +96,10 @@ export default function DashboardPeserta() {
 
         <button
           onClick={mulaiUjian}
+          disabled={loading}
           className="w-full bg-green-600 text-white p-3 rounded-lg text-lg hover:bg-green-700"
         >
-          Mulai Ujian
+          {loading ? "Memeriksa..." : "Mulai Ujian"}
         </button>
 
       </div>
