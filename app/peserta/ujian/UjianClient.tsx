@@ -67,7 +67,15 @@ export default function UjianClient() {
     );
   }
 
-  const s = soal[current];
+  const s = soal[current] || null;
+
+if (!s) {
+  return (
+    <div className="p-10 text-center">
+      Soal tidak ditemukan
+    </div>
+  );
+}
 
   return (
     <div className="max-w-3xl mx-auto p-6">
