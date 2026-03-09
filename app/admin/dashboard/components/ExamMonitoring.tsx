@@ -227,27 +227,47 @@ async function stopUjian() {
   }, [selectedKelas, selectedAsesmen]);
 
   // ===============================
-  // GENERATE TOKEN
   // ===============================
+// GENERATE TOKEN
+// ===============================
 
-  function generateToken() {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let result = "";
+async function generateToken() {
 
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-
-    setToken(result);
-
-    if (selectedAsesmen) {
-      supabase.from("token_ujian").insert({
-        id_asesmen: selectedAsesmen,
-        token: result,
-        status: true,
-      });
-    }
+  if (!selectedAsesmen) {
+    alert("Pilih asesmen dulu");
+    return;
   }
+
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let result = "";
+
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  // hapus token lama
+  await supabase
+    .from("token_ujian")
+    .delete()
+    .eq("id_asesmen", selectedAsesmen);
+
+  // insert token baru
+  const { error } = await supabase
+    .from("token_ujian")
+    .insert({
+      id_asesmen: selectedAsesmen,
+      token: result,
+      status: true,
+    });
+
+  if (error) {
+    console.error(error);
+    alert("Gagal membuat token");
+    return;
+  }
+
+  setToken(result);
+}
 
   // ===============================
   // RESET PESERTA
