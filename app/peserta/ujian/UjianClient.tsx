@@ -100,34 +100,100 @@ if (!s) {
 }
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+  <div className="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
 
-      <h1 className="text-xl font-bold mb-6">
-        Soal {current + 1} dari {soal.length}
-      </h1>
+    {/* SIDEBAR NOMOR SOAL - DESKTOP */}
+    <div className="hidden md:block border rounded-lg p-4 bg-white shadow">
 
-      <SoalCard soal={s} />
+      <h2 className="font-bold mb-4 text-center">
+        Nomor Soal
+      </h2>
 
-      <div className="flex justify-between mt-10">
+      <div className="grid grid-cols-5 gap-2">
 
-        <button
-          onClick={() => setCurrent(current - 1)}
-          disabled={current === 0}
-          className="bg-gray-200 px-4 py-2 rounded"
-        >
-          Sebelumnya
-        </button>
-
-        <button
-          onClick={() => setCurrent(current + 1)}
-          disabled={current === soal.length - 1}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Berikutnya
-        </button>
+        {soal.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={`p-2 text-sm rounded transition
+            ${
+              i === current
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 hover:bg-gray-300"
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
 
       </div>
 
     </div>
-  );
+
+    {/* AREA SOAL */}
+    <div className="md:col-span-3">
+
+      <div className="bg-white shadow rounded-lg p-6">
+
+        <h1 className="text-lg md:text-xl font-bold mb-6">
+          Soal {current + 1} dari {soal.length}
+        </h1>
+
+        <SoalCard soal={s} />
+
+        {/* NAVIGASI */}
+        <div className="flex justify-between mt-10">
+
+          <button
+            onClick={() => setCurrent(current - 1)}
+            disabled={current === 0}
+            className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
+          >
+            Sebelumnya
+          </button>
+
+          <button
+            onClick={() => setCurrent(current + 1)}
+            disabled={current === soal.length - 1}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            Berikutnya
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* NOMOR SOAL UNTUK HP */}
+      <div className="md:hidden mt-6 border rounded-lg p-4 bg-white shadow">
+
+        <h2 className="font-bold mb-3 text-center">
+          Nomor Soal
+        </h2>
+
+        <div className="grid grid-cols-5 gap-2">
+
+          {soal.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={`p-2 text-sm rounded
+              ${
+                i === current
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+);
 }
