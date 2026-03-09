@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useSearchParams } from "next/navigation";
 import SoalCard from "./components/SoalCard";
 
 type Soal = {
   id: number;
+  id_asesmen: number;
   pertanyaan: string;
   tipe: "pg" | "pgk" | "bs";
   pilihan: any[];
@@ -13,35 +15,54 @@ type Soal = {
 
 export default function UjianPage() {
 
+  const params = useSearchParams();
+  const id = params.get("id");
+
   const [soal, setSoal] = useState<Soal[]>([]);
   const [current, setCurrent] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadSoal();
-  }, []);
+    if (id) {
+      loadSoal();
+    }
+  }, [id]);
 
   async function loadSoal() {
 
+    setLoading(true);
+
     const { data, error } = await supabase
-      .from("soal")
+      .from("bank_soal")
       .select("*")
+      .eq("id_asesmen", id)
       .order("id");
 
     if (error) {
-      console.error(error);
+      console.error("Error ambil soal:", error);
+      setLoading(false);
       return;
     }
 
-    if (data) {
+    if (data && data.length > 0) {
       setSoal(data);
     }
 
+    setLoading(false);
+  }
+
+  if (loading) {
+    return (
+      <div className="p-10 text-center">
+        Loading soal...
+      </div>
+    );
   }
 
   if (soal.length === 0) {
     return (
       <div className="p-10 text-center">
-        Loading soal...
+        Soal belum tersedia
       </div>
     );
   }
