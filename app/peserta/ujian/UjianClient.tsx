@@ -48,44 +48,35 @@ export default function UjianClient() {
 
   const soalFix = data.map((s: any) => {
 
-    let pilihan = [];
+  let pilihan: string[] = [];
 
-let pilihan: string[] = [];
-
-if (Array.isArray(s.pilihan)) {
-  pilihan = s.pilihan;
-}
-else if (typeof s.pilihan === "object" && s.pilihan !== null) {
-  pilihan = Object.values(s.pilihan);
-}
-else if (typeof s.pilihan === "string") {
-  try {
-    const parsed = JSON.parse(s.pilihan);
-
-    if (Array.isArray(parsed)) {
-      pilihan = parsed;
-    } else if (typeof parsed === "object") {
-      pilihan = Object.values(parsed);
-    }
-
-  } catch {
-    pilihan = [];
+  if (Array.isArray(s.pilihan)) {
+    pilihan = s.pilihan;
   }
-}    
-	else if (typeof s.pilihan === "string") {
-      try {
-        pilihan = JSON.parse(s.pilihan);
-      } catch {
-        pilihan = [];
+  else if (typeof s.pilihan === "object" && s.pilihan !== null) {
+    pilihan = Object.values(s.pilihan) as string[];
+  }
+  else if (typeof s.pilihan === "string") {
+    try {
+      const parsed = JSON.parse(s.pilihan);
+
+      if (Array.isArray(parsed)) {
+        pilihan = parsed;
+      } else if (typeof parsed === "object") {
+        pilihan = Object.values(parsed) as string[];
       }
+
+    } catch {
+      pilihan = [];
     }
+  }
 
-    return {
-      ...s,
-      pilihan
-    };
+  return {
+    ...s,
+    pilihan
+  };
 
-  });
+});
 
   setSoal(soalFix);
 }
