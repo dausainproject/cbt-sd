@@ -246,23 +246,29 @@ async function generateToken() {
   }
 
   // hapus token lama
-  await supabase
+  const { error: deleteError } = await supabase
     .from("token_ujian")
     .delete()
     .eq("id_asesmen", selectedAsesmen);
 
+  if (deleteError) {
+    console.log(deleteError);
+  }
+
   // insert token baru
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("token_ujian")
     .insert({
       id_asesmen: selectedAsesmen,
       token: result,
       status: true,
-    });
+    })
+    .select();
+
+  console.log("INSERT RESULT:", data, error);
 
   if (error) {
-    console.error(error);
-    alert("Gagal membuat token");
+    alert("Error Supabase: " + error.message);
     return;
   }
 
