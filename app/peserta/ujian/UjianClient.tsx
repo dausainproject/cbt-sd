@@ -50,9 +50,29 @@ export default function UjianClient() {
 
     let pilihan = [];
 
-    if (Array.isArray(s.pilihan)) {
-      pilihan = s.pilihan;
-    } else if (typeof s.pilihan === "string") {
+let pilihan: string[] = [];
+
+if (Array.isArray(s.pilihan)) {
+  pilihan = s.pilihan;
+}
+else if (typeof s.pilihan === "object" && s.pilihan !== null) {
+  pilihan = Object.values(s.pilihan);
+}
+else if (typeof s.pilihan === "string") {
+  try {
+    const parsed = JSON.parse(s.pilihan);
+
+    if (Array.isArray(parsed)) {
+      pilihan = parsed;
+    } else if (typeof parsed === "object") {
+      pilihan = Object.values(parsed);
+    }
+
+  } catch {
+    pilihan = [];
+  }
+}    
+	else if (typeof s.pilihan === "string") {
       try {
         pilihan = JSON.parse(s.pilihan);
       } catch {
