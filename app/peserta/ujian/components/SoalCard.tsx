@@ -23,8 +23,8 @@ export default function SoalCard({ soal, value, onChange }: Props) {
       </div>
 
       {soal.tipe === "pg" && <SoalPG soal={soal} value={value} onChange={onChange} />}
-      {soal.tipe === "pgk" && <SoalPGK soal={soal} value={value} onChange={onChange} />}
-      {soal.tipe === "bs" && <SoalBS soal={soal} value={value} onChange={onChange} />}
+{soal.tipe === "pgk" && <SoalPGK soal={soal} value={value} onChange={onChange} />}
+{soal.tipe === "bs" && <SoalBS soal={soal} value={value} onChange={onChange} />}
 
     </div>
   );
@@ -106,10 +106,20 @@ function SoalPGK({
         >
 
           <input
-            type="checkbox"
-            checked={value.includes(p)}
-            onChange={() => onChange(p)}
-          />
+  type="checkbox"
+  checked={value.split("|").includes(p)}
+  onChange={() => {
+
+    const arr = value ? value.split("|") : [];
+
+    if (arr.includes(p)) {
+      onChange(arr.filter(v => v !== p).join("|"));
+    } else {
+      onChange([...arr, p].join("|"));
+    }
+
+  }}
+/>
 
           {p}
 
@@ -136,7 +146,22 @@ function SoalBS({
   onChange: (v: string) => void;
 }) {
 
-  const pilihan = Array.isArray(soal.pilihan) ? soal.pilihan : [];
+  let pilihan: string[] = [];
+
+if (Array.isArray(soal.pilihan)) {
+  pilihan = soal.pilihan;
+}
+else if (typeof soal.pilihan === "string") {
+  try {
+    const parsed = JSON.parse(soal.pilihan);
+
+    if (Array.isArray(parsed)) {
+      pilihan = parsed;
+    }
+  } catch {
+    pilihan = [];
+  }
+}
 
   return (
     <div className="space-y-4">
