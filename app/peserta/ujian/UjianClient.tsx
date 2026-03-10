@@ -130,8 +130,32 @@ function simpanJawaban(idSoal:number, value:string){
   setJawaban(baru);
 
   localStorage.setItem("jawaban_ujian", JSON.stringify(baru));
+}
+
+{/* kirim / submit jawaban */}
+async function submitUjian(){
+
+  const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
+    id_soal: Number(id_soal),
+    jawaban: jwb
+  }));
+
+  const { error } = await supabase
+    .from("jawaban_peserta")
+    .insert(dataKirim);
+
+  if(error){
+    alert("Submit gagal");
+    console.log(error);
+    return;
+  }
+
+  localStorage.removeItem("jawaban_ujian");
+
+  alert("Ujian berhasil dikumpulkan");
 
 }
+
   return (
   <div className="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
 
@@ -189,13 +213,25 @@ function simpanJawaban(idSoal:number, value:string){
             Sebelumnya
           </button>
 
-          <button
-            onClick={() => setCurrent(current + 1)}
-            disabled={current === soal.length - 1}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-          >
-            Berikutnya
-          </button>
+          {current === soal.length - 1 ? (
+
+  <button
+    onClick={submitUjian}
+    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded"
+  >
+    Submit Ujian
+  </button>
+
+) : (
+
+  <button
+    onClick={() => setCurrent(current + 1)}
+    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+  >
+    Berikutnya
+  </button>
+
+)}
 
         </div>
 
