@@ -56,6 +56,7 @@ useEffect(() => {
     }
 
    if (data) {
+	   console.log("DATA SOAL DARI DB:", data);
 
   const soalFix = data.map((s: any) => {
 
