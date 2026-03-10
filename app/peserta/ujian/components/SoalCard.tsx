@@ -153,13 +153,19 @@ function SoalBS({
 if (Array.isArray(soal.pilihan)) {
   pilihan = soal.pilihan;
 }
+else if (typeof soal.pilihan === "object" && soal.pilihan !== null) {
+  pilihan = Object.values(soal.pilihan) as string[];
+}
 else if (typeof soal.pilihan === "string") {
   try {
     const parsed = JSON.parse(soal.pilihan);
 
     if (Array.isArray(parsed)) {
       pilihan = parsed;
+    } else if (typeof parsed === "object") {
+      pilihan = Object.values(parsed) as string[];
     }
+
   } catch {
     pilihan = [];
   }
