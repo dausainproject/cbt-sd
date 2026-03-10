@@ -65,8 +65,10 @@ useEffect(() => {
     pilihan = s.pilihan;
   }
   else if (typeof s.pilihan === "object" && s.pilihan !== null) {
-    pilihan = Object.values(s.pilihan) as string[];
-  }
+  pilihan = Object.values(s.pilihan).map((v:any) =>
+    typeof v === "string" ? v : v.text || ""
+  );
+}
   else if (typeof s.pilihan === "string") {
     try {
       const parsed = JSON.parse(s.pilihan);
