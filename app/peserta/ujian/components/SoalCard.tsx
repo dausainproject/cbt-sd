@@ -151,7 +151,9 @@ function SoalBS({
   let pilihan: string[] = [];
 
 if (Array.isArray(soal.pilihan)) {
-  pilihan = soal.pilihan;
+  pilihan = soal.pilihan.map((p:any) =>
+    typeof p === "string" ? p : p.teks
+  );
 }
 else if (typeof soal.pilihan === "object" && soal.pilihan !== null) {
   pilihan = Object.values(soal.pilihan) as string[];
