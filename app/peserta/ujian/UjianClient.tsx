@@ -21,12 +21,23 @@ export default function UjianClient() {
   const [soal, setSoal] = useState<Soal[]>([]);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [jawaban, setJawaban] = useState<{[key:number]: string}>({});
 
   useEffect(() => {
     if (id) {
       loadSoal();
     }
   }, [id]);
+
+useEffect(() => {
+
+  const data = localStorage.getItem("jawaban_ujian");
+
+  if(data){
+    setJawaban(JSON.parse(data));
+  }
+
+},[]);
 
   async function loadSoal() {
 
@@ -109,7 +120,18 @@ if (!s) {
     </div>
   );
 }
+function simpanJawaban(idSoal:number, value:string){
 
+  const baru = {
+    ...jawaban,
+    [idSoal]: value
+  };
+
+  setJawaban(baru);
+
+  localStorage.setItem("jawaban_ujian", JSON.stringify(baru));
+
+}
   return (
   <div className="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
 
@@ -150,7 +172,11 @@ if (!s) {
           Soal {current + 1} dari {soal.length}
         </h1>
 
-        <SoalCard soal={s} />
+        <SoalCard
+  soal={s}
+  value={jawaban[s.id] || ""}
+  onChange={(v:string)=>simpanJawaban(s.id,v)}
+/>
 
         {/* NAVIGASI */}
         <div className="flex justify-between mt-10">
