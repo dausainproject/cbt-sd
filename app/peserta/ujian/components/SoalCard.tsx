@@ -190,11 +190,18 @@ else if (typeof soal.pilihan === "string") {
           <label className="mr-6">
 
             <input
-              type="radio"
-              name={`bs_${soal.id}_${i}`}
-              checked={value === `benar_${i}`}
-              onChange={() => onChange(`benar_${i}`)}
-            />
+  type="radio"
+  name={`bs_${soal.id}_${i}`}
+  checked={value.split("|").includes(`benar_${i}`)}
+  onChange={() => {
+
+    const arr = value ? value.split("|") : [];
+    const filtered = arr.filter(v => !v.endsWith(`_${i}`));
+
+    onChange([...filtered, `benar_${i}`].join("|"));
+
+  }}
+/>
 
             <span className="ml-2">Benar</span>
 
@@ -203,11 +210,18 @@ else if (typeof soal.pilihan === "string") {
           <label>
 
             <input
-              type="radio"
-              name={`bs_${soal.id}_${i}`}
-              checked={value === `salah_${i}`}
-              onChange={() => onChange(`salah_${i}`)}
-            />
+  type="radio"
+  name={`bs_${soal.id}_${i}`}
+  checked={value.split("|").includes(`salah_${i}`)}
+  onChange={() => {
+
+    const arr = value ? value.split("|") : [];
+    const filtered = arr.filter(v => !v.endsWith(`_${i}`));
+
+    onChange([...filtered, `salah_${i}`].join("|"));
+
+  }}
+/>
 
             <span className="ml-2">Salah</span>
 
