@@ -9,9 +9,11 @@ type Soal = {
 
 type Props = {
   soal: Soal;
+  value: string;
+  onChange: (v: string) => void;
 };
 
-export default function SoalCard({ soal }: Props) {
+export default function SoalCard({ soal, value, onChange }: Props) {
 
   return (
     <div>
@@ -20,9 +22,9 @@ export default function SoalCard({ soal }: Props) {
         {soal.pertanyaan}
       </div>
 
-      {soal.tipe === "pg" && <SoalPG soal={soal} />}
-      {soal.tipe === "pgk" && <SoalPGK soal={soal} />}
-      {soal.tipe === "bs" && <SoalBS soal={soal} />}
+      {soal.tipe === "pg" && <SoalPG soal={soal} value={value} onChange={onChange} />}
+      {soal.tipe === "pgk" && <SoalPGK soal={soal} value={value} onChange={onChange} />}
+      {soal.tipe === "bs" && <SoalBS soal={soal} value={value} onChange={onChange} />}
 
     </div>
   );
@@ -33,7 +35,15 @@ export default function SoalCard({ soal }: Props) {
 /* PG */
 /* ===================== */
 
-function SoalPG({ soal }: { soal: Soal }) {
+function SoalPG({
+  soal,
+  value,
+  onChange
+}: {
+  soal: Soal;
+  value: string;
+  onChange: (v: string) => void;
+}) {
 
   const pilihan = Array.isArray(soal.pilihan) ? soal.pilihan : [];
 
@@ -44,13 +54,19 @@ function SoalPG({ soal }: { soal: Soal }) {
 
         <label
           key={i}
-          className="flex gap-3 border p-3 rounded cursor-pointer"
+          className="flex gap-3 border p-3 rounded cursor-pointer hover:bg-gray-50"
         >
 
           <input
             type="radio"
             name={`soal_${soal.id}`}
+            checked={value === p}
+            onChange={() => onChange(p)}
           />
+
+          <span className="font-semibold">
+            {String.fromCharCode(65 + i)}.
+          </span>
 
           {p}
 
@@ -67,7 +83,15 @@ function SoalPG({ soal }: { soal: Soal }) {
 /* PGK */
 /* ===================== */
 
-function SoalPGK({ soal }: { soal: Soal }) {
+function SoalPGK({
+  soal,
+  value,
+  onChange
+}: {
+  soal: Soal;
+  value: string;
+  onChange: (v: string) => void;
+}) {
 
   const pilihan = Array.isArray(soal.pilihan) ? soal.pilihan : [];
 
@@ -81,7 +105,11 @@ function SoalPGK({ soal }: { soal: Soal }) {
           className="flex gap-3 border p-3 rounded cursor-pointer"
         >
 
-          <input type="checkbox" />
+          <input
+            type="checkbox"
+            checked={value.includes(p)}
+            onChange={() => onChange(p)}
+          />
 
           {p}
 
@@ -98,7 +126,15 @@ function SoalPGK({ soal }: { soal: Soal }) {
 /* BENAR SALAH */
 /* ===================== */
 
-function SoalBS({ soal }: { soal: Soal }) {
+function SoalBS({
+  soal,
+  value,
+  onChange
+}: {
+  soal: Soal;
+  value: string;
+  onChange: (v: string) => void;
+}) {
 
   const pilihan = Array.isArray(soal.pilihan) ? soal.pilihan : [];
 
@@ -121,6 +157,8 @@ function SoalBS({ soal }: { soal: Soal }) {
             <input
               type="radio"
               name={`bs_${soal.id}_${i}`}
+              checked={value === `benar_${i}`}
+              onChange={() => onChange(`benar_${i}`)}
             />
 
             <span className="ml-2">Benar</span>
@@ -132,6 +170,8 @@ function SoalBS({ soal }: { soal: Soal }) {
             <input
               type="radio"
               name={`bs_${soal.id}_${i}`}
+              checked={value === `salah_${i}`}
+              onChange={() => onChange(`salah_${i}`)}
             />
 
             <span className="ml-2">Salah</span>
