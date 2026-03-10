@@ -3,7 +3,7 @@
 type Soal = {
   id: number;
   pertanyaan: string;
-  tipe: "pg" | "pgk" | "bs";
+  tipe: "pg" | "pgk" | "bs" | "bs_kompleks";
   pilihan?: string[];
 };
 
@@ -24,7 +24,9 @@ export default function SoalCard({ soal, value, onChange }: Props) {
 
       {soal.tipe === "pg" && <SoalPG soal={soal} value={value} onChange={onChange} />}
 {soal.tipe === "pgk" && <SoalPGK soal={soal} value={value} onChange={onChange} />}
-{soal.tipe === "bs" && <SoalBS soal={soal} value={value} onChange={onChange} />}
+{(soal.tipe === "bs" || soal.tipe === "bs_kompleks") && (
+  <SoalBS soal={soal} value={value} onChange={onChange} />
+)}
 
     </div>
   );
