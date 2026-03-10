@@ -9,7 +9,7 @@ type Soal = {
   id: number;
   id_asesmen: number;
   pertanyaan: string;
-  tipe: "pg" | "pgk" | "bs";
+  tipe: "pg" | "pgk" | "bs" | "bs_kompleks";
   pilihan: string[];
 };
 
@@ -140,6 +140,7 @@ async function submitUjian(){
 
   const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
     id_soal: Number(id_soal),
+    id_asesmen: Number(id),
     jawaban: jwb
   }));
 
@@ -148,8 +149,8 @@ async function submitUjian(){
     .insert(dataKirim);
 
   if(error){
-    alert("Submit gagal");
     console.log(error);
+    alert(error.message);
     return;
   }
 
