@@ -293,7 +293,7 @@ async function handleReset() {
     ? "Benar/Salah"
     : item.tipe}
 </td>
-                  <<td className="p-2">
+                  <td className="p-2">
   {JSON.stringify(item.kunci)}
 </td>
                   <td className="p-2">{item.bobot}</td>
