@@ -67,7 +67,11 @@ function renderJawaban(item: Soal) {
   }
 
   if (item.tipe === "benar_salah") {
-    return item.kunci;
+    return item.kunci ? "Benar" : "Salah";
+  }
+
+  if (item.tipe === "bs_kompleks" && Array.isArray(item.kunci)) {
+    return item.kunci.join(", ");
   }
 
   return "-";
