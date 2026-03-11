@@ -58,28 +58,29 @@ export default function BankSoalPage() {
 
   const totalBobot = soal.reduce((acc, s) => acc + (s.bobot || 0), 0);
 function renderJawaban(item: Soal) {
-  const tipe = item.tipe?.toLowerCase();
-
   if (!item.kunci) return "-";
+
+  const tipe = item.tipe?.toLowerCase();
 
   // PG
   if (tipe === "pg") {
-    return String(item.kunci);
+    return String(item.kunci).replace(/"/g, "");
   }
 
   // PGK
-  if (tipe === "pgk" && Array.isArray(item.kunci)) {
-    return item.kunci.join(", ");
-  }
-
-  // Benar Salah
-  if (tipe === "benar_salah") {
-    return String(item.kunci);
+  if (tipe === "pgk") {
+    if (Array.isArray(item.kunci)) {
+      return item.kunci.join(", ");
+    }
   }
 
   // BS Kompleks
-  if (tipe === "bs_kompleks" && Array.isArray(item.kunci)) {
-    return item.kunci.join(", ");
+  if (tipe === "bs_kompleks") {
+    if (typeof item.kunci === "object") {
+      return Object.entries(item.kunci)
+        .map(([no, val]) => `${no}:${val}`)
+        .join(", ");
+    }
   }
 
   return "-";
