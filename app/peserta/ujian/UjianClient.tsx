@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import SoalCard from "./components/SoalCard";
 
 type Soal = {
@@ -16,7 +16,8 @@ type Soal = {
 export default function UjianClient() {
 
   const params = useSearchParams();
-  const id = params.get("id");
+const id = params.get("id");
+const router = useRouter();
 
   const [soal, setSoal] = useState<Soal[]>([]);
   const [current, setCurrent] = useState(0);
@@ -156,7 +157,7 @@ async function submitUjian(){
 
   localStorage.removeItem("jawaban_ujian");
 
-  alert("Ujian berhasil dikumpulkan");
+  router.push(`/peserta/hasil?id=${id}`);
 
 }
 
