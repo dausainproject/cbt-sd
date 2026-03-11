@@ -60,18 +60,24 @@ export default function BankSoalPage() {
 function renderJawaban(item: Soal) {
   const tipe = item.tipe?.toLowerCase();
 
-  if (tipe === "pg" && typeof item.kunci === "string") {
-    return item.kunci;
+  if (!item.kunci) return "-";
+
+  // PG
+  if (tipe === "pg") {
+    return String(item.kunci);
   }
 
+  // PGK
   if (tipe === "pgk" && Array.isArray(item.kunci)) {
     return item.kunci.join(", ");
   }
 
+  // Benar Salah
   if (tipe === "benar_salah") {
-    return item.kunci;
+    return String(item.kunci);
   }
 
+  // BS Kompleks
   if (tipe === "bs_kompleks" && Array.isArray(item.kunci)) {
     return item.kunci.join(", ");
   }
