@@ -1,12 +1,41 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 function HasilContent() {
 
   const params = useSearchParams();
   const id = params.get("id");
+
+  const [namaAsesmen, setNamaAsesmen] = useState("");
+
+  useEffect(() => {
+
+    async function loadAsesmen(){
+
+      const { data, error } = await supabase
+        .from("data_asesmen")
+        .select("nama_asesmen")
+        .eq("id", id)
+        .single();
+
+      if(data){
+        setNamaAsesmen(data.nama_asesmen);
+      }
+
+      if(error){
+        console.log(error);
+      }
+
+    }
+
+    if(id){
+      loadAsesmen();
+    }
+
+  },[id]);
 
   return (
     <div className="max-w-xl mx-auto p-10 text-center">
@@ -15,7 +44,11 @@ function HasilContent() {
         Ujian Selesai
       </h1>
 
-      <p>
+      <p className="text-lg font-semibold">
+        {namaAsesmen}
+      </p>
+
+      <p className="mt-4">
         Terima kasih sudah mengerjakan ujian.
       </p>
 
