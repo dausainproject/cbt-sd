@@ -1,8 +1,9 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function HasilPage() {
+function HasilContent() {
 
   const params = useSearchParams();
   const id = params.get("id");
@@ -23,5 +24,13 @@ export default function HasilPage() {
       </p>
 
     </div>
+  );
+}
+
+export default function HasilPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center">Loading...</div>}>
+      <HasilContent />
+    </Suspense>
   );
 }
