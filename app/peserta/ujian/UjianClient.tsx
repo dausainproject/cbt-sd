@@ -141,24 +141,17 @@ async function submitUjian(){
 
   const noPeserta = localStorage.getItem("no_peserta");
 
-if (!noPeserta) {
-  alert("Peserta tidak ditemukan");
-  return;
-}
+  if (!noPeserta) {
+    alert("Peserta tidak ditemukan");
+    return;
+  }
 
-const noPeserta = localStorage.getItem("no_peserta");
-
-if (!noPeserta) {
-  alert("Peserta tidak ditemukan");
-  return;
-}
-
-const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
-  no_peserta: noPeserta,   // 🔥 INI YANG PENTING
-  id_soal: Number(id_soal),
-  id_asesmen: Number(id),
-  jawaban: jwb
-}));
+  const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
+    no_peserta: noPeserta,
+    id_soal: Number(id_soal),
+    id_asesmen: Number(id),
+    jawaban: jwb
+  }));
 
   const { error } = await supabase
     .from("jawaban_peserta")
@@ -173,7 +166,6 @@ const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
   localStorage.removeItem("jawaban_ujian");
 
   router.push(`/peserta/hasil?id=${id}`);
-
 }
 
   return (
