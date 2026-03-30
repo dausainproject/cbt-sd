@@ -39,14 +39,14 @@ function HasilContent() {
       }
 
     }
-
+const noPeserta = localStorage.getItem("no_peserta");
     async function hitungNilai() {
 
       // ambil soal
       const { data: soal, error: errSoal } = await supabase
         .from("bank_soal")
         .select("id, kunci")
-        .eq("asesmen_id", id);
+        .eq("id_asesmen", id);
 
       if(errSoal){
         console.log(errSoal);
@@ -56,14 +56,16 @@ function HasilContent() {
       // ambil jawaban
       const { data: jawaban, error: errJawaban } = await supabase
         .from("jawaban_peserta")
-        .select("soal_id, jawaban")
-        .eq("asesmen_id", id);
+.select("id_soal, jawaban")
+.eq("id_asesmen", id)
+.eq("no_peserta", noPeserta);
 
       if(errJawaban){
         console.log(errJawaban);
         return;
       }
-
+console.log("Peserta:", noPeserta);
+console.log("Jawaban:", jawaban);
       let b = 0;
       let s = 0;
       let k = 0;
@@ -72,13 +74,13 @@ function HasilContent() {
 
       soal?.forEach((item, index) => {
 
-        const jwb = jawaban?.find(j => j.soal_id === item.id);
+        const jwb = jawaban?.find(j => j.id_soal === item.id);
 
         if (!jwb || !jwb.jawaban) {
           k++;
           detail.push({ no: index + 1, status: "kosong" });
         } 
-        else if (jwb.jawaban === item.kunci) {
+        else if (JSON.stringify(jwb.jawaban) === JSON.stringify(item.kunci)) {
           b++;
           detail.push({ no: index + 1, status: "benar" });
         } 
