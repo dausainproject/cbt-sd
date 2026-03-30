@@ -182,9 +182,9 @@ if (error) {
   }
 
   // =========================
-  // 3. HITUNG NILAI
-  // =========================
- let b = 0;
+// 3. HITUNG NILAI
+// =========================
+let b = 0;
 let s = 0;
 let k = 0;
 
@@ -194,22 +194,14 @@ soalDB?.forEach((item) => {
 
   let kunci = item.kunci;
 
-  // 🔥 HANDLE kalau kunci bentuk JSON string
   try {
     if (typeof kunci === "string") {
       kunci = JSON.parse(kunci);
     }
-  } catch {
-    // biarin kalau bukan JSON
-  }
+  } catch {}
 
-  // 🔥 NORMALISASI JADI STRING
   const jawabanUser = String(jwb || "").trim().toLowerCase();
   const kunciFinal = String(kunci || "").trim().toLowerCase();
-
-  console.log("SOAL:", item.id);
-  console.log("JAWABAN:", jawabanUser);
-  console.log("KUNCI:", kunciFinal);
 
   if (!jawabanUser) {
     k++;
@@ -223,6 +215,30 @@ soalDB?.forEach((item) => {
 
 });
 
+// 🔥 INI YANG LO LUPA
+const nilaiAkhir =
+  soalDB && soalDB.length > 0
+    ? Math.round((b / soalDB.length) * 100)
+    : 0;
+
+console.log("BENAR:", b);
+console.log("SALAH:", s);
+console.log("KOSONG:", k);
+console.log("NILAI:", nilaiAkhir);
+
+// =========================
+// 4. SIMPAN LAPORAN
+// =========================
+const { error: errInsert } = await supabase
+  .from("laporan_ujian")
+  .upsert({
+    id_asesmen: id,
+    no_peserta: noPeserta,
+    nilai: nilaiAkhir, // ⬅️ sekarang aman
+    benar: b,
+    salah: s,
+    kosong: k,
+  });
   // =========================
   // 4. SIMPAN LAPORAN
   // =========================
