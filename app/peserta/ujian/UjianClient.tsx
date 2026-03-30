@@ -226,19 +226,7 @@ console.log("SALAH:", s);
 console.log("KOSONG:", k);
 console.log("NILAI:", nilaiAkhir);
 
-// =========================
-// 4. SIMPAN LAPORAN
-// =========================
-const { error: errInsert } = await supabase
-  .from("laporan_ujian")
-  .upsert({
-    id_asesmen: id,
-    no_peserta: noPeserta,
-    nilai: nilaiAkhir, // ⬅️ sekarang aman
-    benar: b,
-    salah: s,
-    kosong: k,
-  });
+
   // =========================
   // 4. SIMPAN LAPORAN
   // =========================
