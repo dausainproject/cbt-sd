@@ -146,6 +146,9 @@ async function submitUjian(){
     return;
   }
 
+  // =========================
+  // 1. SIMPAN JAWABAN
+  // =========================
   const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
     no_peserta: noPeserta,
     id_soal: Number(id_soal),
@@ -163,6 +166,67 @@ async function submitUjian(){
     return;
   }
 
+  // =========================
+  // 2. AMBIL KUNCI JAWABAN
+  // =========================
+  const { data: soalDB, error: errSoal } = await supabase
+    .from("bank_soal")
+    .select("id, kunci")
+    .eq("id_asesmen", id);
+
+  if(errSoal){
+    console.log(errSoal);
+    return;
+  }
+
+  // =========================
+  // 3. HITUNG NILAI
+  // =========================
+  let b = 0;
+  let s = 0;
+  let k = 0;
+
+  soalDB?.forEach((item) => {
+
+    const jwb = jawaban[item.id];
+
+    if (!jwb) {
+      k++;
+    } 
+    else if (JSON.stringify(jwb) === JSON.stringify(item.kunci)) {
+      b++;
+    } 
+    else {
+      s++;
+    }
+
+  });
+
+  const nilaiAkhir = soalDB && soalDB.length > 0
+    ? Math.round((b / soalDB.length) * 100)
+    : 0;
+
+  // =========================
+  // 4. SIMPAN LAPORAN
+  // =========================
+  const { error: errInsert } = await supabase
+    .from("laporan_ujian")
+    .upsert({
+      id_asesmen: id,
+      no_peserta: noPeserta,
+      nilai: nilaiAkhir,
+      benar: b,
+      salah: s,
+      kosong: k,
+    });
+
+  if (errInsert) {
+    console.log("Gagal simpan laporan:", errInsert);
+  }
+
+  // =========================
+  // 5. BERSIHIN & REDIRECT
+  // =========================
   localStorage.removeItem("jawaban_ujian");
 
   router.push(`/peserta/hasil?id=${id}`);
