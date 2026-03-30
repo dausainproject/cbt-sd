@@ -193,9 +193,12 @@ async function submitUjian(){
     if (!jwb) {
       k++;
     } 
-    else if (JSON.stringify(jwb) === JSON.stringify(item.kunci)) {
-      b++;
-    } 
+    else if (
+  String(jwb).trim().toLowerCase() ===
+  String(item.kunci).trim().toLowerCase()
+) {
+  b++;
+} 
     else {
       s++;
     }
