@@ -16,6 +16,18 @@ export default function LoginPeserta() {
     setLoading(true);
     setError("");
 
+    // =========================
+    // VALIDASI INPUT
+    // =========================
+    if (!noPeserta || !password) {
+      setError("No peserta dan password wajib diisi");
+      setLoading(false);
+      return;
+    }
+
+    // =========================
+    // CEK KE DATABASE
+    // =========================
     const { data, error } = await supabase
       .from("data_siswa")
       .select("*")
@@ -29,9 +41,28 @@ export default function LoginPeserta() {
       return;
     }
 
-    // simpan ke localStorage
+    // =========================
+    // BERSIHKAN DATA LAMA (PENTING)
+    // =========================
+    localStorage.removeItem("jawaban_ujian");
+
+    // =========================
+    // SIMPAN DATA PESERTA
+    // =========================
     localStorage.setItem("peserta", JSON.stringify(data));
 
+    // ⬇️ INI YANG TADI KURANG (FIX UTAMA)
+    localStorage.setItem("no_peserta", data.no_peserta);
+
+    // =========================
+    // DEBUG (OPTIONAL)
+    // =========================
+    console.log("Login berhasil:", data);
+    console.log("no_peserta disimpan:", data.no_peserta);
+
+    // =========================
+    // REDIRECT
+    // =========================
     router.push("/peserta/dashboard");
   };
 
@@ -66,7 +97,7 @@ export default function LoginPeserta() {
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700"
+          className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700 transition"
         >
           {loading ? "Masuk..." : "Masuk"}
         </button>
