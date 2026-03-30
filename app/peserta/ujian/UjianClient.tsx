@@ -157,14 +157,16 @@ async function submitUjian(){
   }));
 
   const { error } = await supabase
-    .from("jawaban_peserta")
-    .insert(dataKirim);
+  .from("jawaban_peserta")
+  .upsert(dataKirim, {
+    onConflict: "no_peserta,id_soal,id_asesmen"
+  });
 
-  if(error){
-    console.log(error);
-    alert(error.message);
-    return;
-  }
+if (error) {
+  console.log(error);
+  alert(error.message);
+  return;
+}
 
   // =========================
   // 2. AMBIL KUNCI JAWABAN
