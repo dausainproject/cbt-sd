@@ -139,11 +139,19 @@ function simpanJawaban(idSoal:number, value:string){
 {/* kirim / submit jawaban */}
 async function submitUjian(){
 
-  const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
-    id_soal: Number(id_soal),
-    id_asesmen: Number(id),
-    jawaban: jwb
-  }));
+  const noPeserta = localStorage.getItem("no_peserta");
+
+if (!noPeserta) {
+  alert("Peserta tidak ditemukan");
+  return;
+}
+
+const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
+  no_peserta: noPeserta, // 🔥 INI YANG PENTING
+  id_soal: Number(id_soal),
+  id_asesmen: Number(id),
+  jawaban: jwb
+}));
 
   const { error } = await supabase
     .from("jawaban_peserta")

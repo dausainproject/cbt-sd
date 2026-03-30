@@ -40,6 +40,10 @@ function HasilContent() {
 
     }
 const noPeserta = localStorage.getItem("no_peserta");
+if (!noPeserta) {
+  console.log("no_peserta tidak ditemukan");
+  return;
+}
     async function hitungNilai() {
 
       // ambil soal
