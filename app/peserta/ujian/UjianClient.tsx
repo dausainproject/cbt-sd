@@ -200,8 +200,15 @@ soalDB?.forEach((item) => {
     }
   } catch {}
 
-  const jawabanUser = String(jwb || "").trim().toLowerCase();
-  const kunciFinal = String(kunci || "").trim().toLowerCase();
+  function bersihin(text:any){
+  return String(text || "")
+    .replace(/^"+|"+$/g, "") // 🔥 hapus tanda kutip di awal & akhir
+    .trim()
+    .toLowerCase();
+}
+
+const jawabanUser = bersihin(jwb);
+const kunciFinal = bersihin(kunci);
 
   if (!jawabanUser) {
     k++;
@@ -228,22 +235,42 @@ console.log("NILAI:", nilaiAkhir);
 
 
   // =========================
-  // 4. SIMPAN LAPORAN
-  // =========================
-  const { error: errInsert } = await supabase
-    .from("laporan_ujian")
-    .upsert({
-      id_asesmen: id,
+// 4. SIMPAN LAPORAN
+// =========================
+
+// 🔥 DEBUG: liat dulu datanya sebelum dikirim
+console.log("KIRIM LAPORAN:", {
+  id_asesmen: Number(id),
+  no_peserta: noPeserta,
+  nilai: nilaiAkhir,
+  benar: b,
+  salah: s,
+  kosong: k,
+});
+
+const { error: errInsert } = await supabase
+  .from("laporan_ujian")
+  .upsert(
+    {
+      id_asesmen: Number(id),
       no_peserta: noPeserta,
       nilai: nilaiAkhir,
       benar: b,
       salah: s,
       kosong: k,
-    });
+    },
+    {
+      onConflict: "no_peserta,id_asesmen",
+    }
+  );
 
-  if (errInsert) {
-    console.log("Gagal simpan laporan:", errInsert);
-  }
+// 🔥 HANDLE ERROR BIAR KELIATAN
+if (errInsert) {
+  console.log("❌ Gagal simpan laporan:", errInsert);
+  alert("Gagal simpan laporan: " + errInsert.message);
+} else {
+  console.log("✅ Laporan berhasil disimpan");
+}
 
   // =========================
   // 5. BERSIHIN & REDIRECT
