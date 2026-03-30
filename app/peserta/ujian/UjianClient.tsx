@@ -184,32 +184,44 @@ if (error) {
   // =========================
   // 3. HITUNG NILAI
   // =========================
-  let b = 0;
-  let s = 0;
-  let k = 0;
+ let b = 0;
+let s = 0;
+let k = 0;
 
-  soalDB?.forEach((item) => {
+soalDB?.forEach((item) => {
 
-    const jwb = jawaban[item.id];
+  const jwb = jawaban[item.id];
 
-    if (!jwb) {
-      k++;
-    } 
-    else if (
-  String(jwb).trim().toLowerCase() ===
-  String(item.kunci).trim().toLowerCase()
-) {
-  b++;
-} 
-    else {
-      s++;
+  let kunci = item.kunci;
+
+  // 🔥 HANDLE kalau kunci bentuk JSON string
+  try {
+    if (typeof kunci === "string") {
+      kunci = JSON.parse(kunci);
     }
+  } catch {
+    // biarin kalau bukan JSON
+  }
 
-  });
+  // 🔥 NORMALISASI JADI STRING
+  const jawabanUser = String(jwb || "").trim().toLowerCase();
+  const kunciFinal = String(kunci || "").trim().toLowerCase();
 
-  const nilaiAkhir = soalDB && soalDB.length > 0
-    ? Math.round((b / soalDB.length) * 100)
-    : 0;
+  console.log("SOAL:", item.id);
+  console.log("JAWABAN:", jawabanUser);
+  console.log("KUNCI:", kunciFinal);
+
+  if (!jawabanUser) {
+    k++;
+  } 
+  else if (jawabanUser === kunciFinal) {
+    b++;
+  } 
+  else {
+    s++;
+  }
+
+});
 
   // =========================
   // 4. SIMPAN LAPORAN
