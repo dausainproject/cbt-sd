@@ -11,6 +11,15 @@ function HasilContent() {
 
   const [namaAsesmen, setNamaAsesmen] = useState("");
 
+  // STATE NILAI
+  const [nilai, setNilai] = useState(0);
+  const [benar, setBenar] = useState(0);
+  const [salah, setSalah] = useState(0);
+  const [kosong, setKosong] = useState(0);
+
+  // RINGKASAN
+  const [ringkasan, setRingkasan] = useState<any[]>([]);
+
   useEffect(() => {
 
     async function loadAsesmen(){
@@ -31,8 +40,69 @@ function HasilContent() {
 
     }
 
+    async function hitungNilai() {
+
+      // ambil soal
+      const { data: soal, error: errSoal } = await supabase
+        .from("bank_soal")
+        .select("id, kunci")
+        .eq("asesmen_id", id);
+
+      if(errSoal){
+        console.log(errSoal);
+        return;
+      }
+
+      // ambil jawaban
+      const { data: jawaban, error: errJawaban } = await supabase
+        .from("jawaban_peserta")
+        .select("soal_id, jawaban")
+        .eq("asesmen_id", id);
+
+      if(errJawaban){
+        console.log(errJawaban);
+        return;
+      }
+
+      let b = 0;
+      let s = 0;
+      let k = 0;
+
+      const detail: any[] = [];
+
+      soal?.forEach((item, index) => {
+
+        const jwb = jawaban?.find(j => j.soal_id === item.id);
+
+        if (!jwb || !jwb.jawaban) {
+          k++;
+          detail.push({ no: index + 1, status: "kosong" });
+        } 
+        else if (jwb.jawaban === item.kunci) {
+          b++;
+          detail.push({ no: index + 1, status: "benar" });
+        } 
+        else {
+          s++;
+          detail.push({ no: index + 1, status: "salah" });
+        }
+
+      });
+
+      const nilaiAkhir = soal && soal.length > 0
+        ? Math.round((b / soal.length) * 100)
+        : 0;
+
+      setBenar(b);
+      setSalah(s);
+      setKosong(k);
+      setNilai(nilaiAkhir);
+      setRingkasan(detail);
+    }
+
     if(id){
       loadAsesmen();
+      hitungNilai();
     }
 
   },[id]);
@@ -64,7 +134,7 @@ function HasilContent() {
         </p>
 
         <div className="text-5xl font-bold text-blue-600">
-          85
+          {nilai}
         </div>
 
         <div className="text-gray-500">
@@ -84,17 +154,17 @@ function HasilContent() {
 
           <div>
             <p className="text-gray-500 text-sm">Benar</p>
-            <p className="text-xl font-bold text-green-600">17</p>
+            <p className="text-xl font-bold text-green-600">{benar}</p>
           </div>
 
           <div>
             <p className="text-gray-500 text-sm">Salah</p>
-            <p className="text-xl font-bold text-red-600">3</p>
+            <p className="text-xl font-bold text-red-600">{salah}</p>
           </div>
 
           <div>
             <p className="text-gray-500 text-sm">Kosong</p>
-            <p className="text-xl font-bold text-gray-600">0</p>
+            <p className="text-xl font-bold text-gray-600">{kosong}</p>
           </div>
 
         </div>
@@ -110,17 +180,18 @@ function HasilContent() {
 
         <div className="grid grid-cols-5 gap-2">
 
-          <div className="p-2 rounded text-center bg-green-500 text-white">1</div>
-          <div className="p-2 rounded text-center bg-green-500 text-white">2</div>
-          <div className="p-2 rounded text-center bg-red-500 text-white">3</div>
-          <div className="p-2 rounded text-center bg-green-500 text-white">4</div>
-          <div className="p-2 rounded text-center bg-green-500 text-white">5</div>
-
-          <div className="p-2 rounded text-center bg-green-500 text-white">6</div>
-          <div className="p-2 rounded text-center bg-green-500 text-white">7</div>
-          <div className="p-2 rounded text-center bg-green-500 text-white">8</div>
-          <div className="p-2 rounded text-center bg-red-500 text-white">9</div>
-          <div className="p-2 rounded text-center bg-green-500 text-white">10</div>
+          {ringkasan.map((item, i) => (
+            <div
+              key={i}
+              className={`p-2 rounded text-center text-white
+                ${item.status === "benar" ? "bg-green-500" : ""}
+                ${item.status === "salah" ? "bg-red-500" : ""}
+                ${item.status === "kosong" ? "bg-gray-400" : ""}
+              `}
+            >
+              {item.no}
+            </div>
+          ))}
 
         </div>
 
