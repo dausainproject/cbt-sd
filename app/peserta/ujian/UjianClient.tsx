@@ -23,6 +23,7 @@ const router = useRouter();
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [jawaban, setJawaban] = useState<{[key:number]: string}>({});
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -139,10 +140,14 @@ function simpanJawaban(idSoal:number, value:string){
 {/* kirim / submit jawaban */}
 async function submitUjian(){
 
+  if (submitting) return; // 🔥 cegah double klik
+  setSubmitting(true);
+
   const noPeserta = localStorage.getItem("no_peserta");
 
   if (!noPeserta) {
     alert("Peserta tidak ditemukan");
+    setSubmitting(false); // 🔥 balikin state biar bisa klik lagi
     return;
   }
 
@@ -234,20 +239,7 @@ console.log("KOSONG:", k);
 console.log("NILAI:", nilaiAkhir);
 
 
-  // =========================
-// 4. SIMPAN LAPORAN
-// =========================
-
-// 🔥 DEBUG: liat dulu datanya sebelum dikirim
-console.log("KIRIM LAPORAN:", {
-  id_asesmen: Number(id),
-  no_peserta: noPeserta,
-  nilai: nilaiAkhir,
-  benar: b,
-  salah: s,
-  kosong: k,
-});
-
+  // SIMPAN LAPORAN
 const { error: errInsert } = await supabase
   .from("laporan_ujian")
   .upsert(
@@ -255,14 +247,27 @@ const { error: errInsert } = await supabase
       id_asesmen: Number(id),
       no_peserta: noPeserta,
       nilai: nilaiAkhir,
-      benar: b,
-      salah: s,
-      kosong: k,
+      jumlah_benar: b,
+      jumlah_salah: s,
+      status: "selesai",
+      selesai_pada: new Date(),
     },
     {
       onConflict: "no_peserta,id_asesmen",
     }
   );
+
+// 🔥 TARO DI SINI
+if (errInsert) {
+  console.log("❌ Gagal simpan laporan:", errInsert);
+  alert("Gagal simpan laporan: " + errInsert.message);
+  setSubmitting(false);
+  return;
+}
+
+// LANJUT kalau sukses
+localStorage.removeItem("jawaban_ujian");
+router.push(`/peserta/hasil?id=${id}`);
 
 // 🔥 HANDLE ERROR BIAR KELIATAN
 if (errInsert) {
