@@ -145,19 +145,16 @@ async function submitUjian(){
 
   const noPeserta = localStorage.getItem("no_peserta");
 
-console.log("NO PESERTA DARI LOCAL:", noPeserta);
+// 🔥 DEBUG WAJIB
+console.log("ID:", id);
+console.log("NO PESERTA:", noPeserta);
 
+// 🔥 VALIDASI CLEAN
 if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
   alert("No peserta tidak valid");
   setSubmitting(false);
   return;
 }
-
-  if (!noPeserta) {
-    alert("Peserta tidak ditemukan");
-    setSubmitting(false); // 🔥 balikin state biar bisa klik lagi
-    return;
-  }
 
 
   // =========================
@@ -257,7 +254,11 @@ console.log("SALAH:", s);
 console.log("KOSONG:", k);
 console.log("NILAI:", nilaiAkhir);
 
-
+console.log("DATA LAPORAN:", {
+  id_asesmen: Number(id),
+  no_peserta: noPeserta,
+  nilai: nilaiAkhir,
+});
   // =========================
 // 4. SIMPAN LAPORAN
 // =========================
