@@ -170,6 +170,7 @@ async function submitUjian(){
 if (error) {
   console.log(error);
   alert(error.message);
+  setSubmitting(false); // 🔥 WAJIB
   return;
 }
 
@@ -177,14 +178,23 @@ if (error) {
   // 2. AMBIL KUNCI JAWABAN
   // =========================
   const { data: soalDB, error: errSoal } = await supabase
-    .from("bank_soal")
-    .select("id, kunci")
-    .eq("id_asesmen", id);
+  .from("bank_soal")
+  .select("id, kunci")
+  .eq("id_asesmen", id);
 
-  if(errSoal){
-    console.log(errSoal);
-    return;
-  }
+// 🔥 HANDLE ERROR QUERY
+if (errSoal) {
+  console.log(errSoal);
+  setSubmitting(false);
+  return;
+}
+
+// 🔥 TARO DI SINI
+if (!soalDB || soalDB.length === 0) {
+  alert("Soal tidak ditemukan");
+  setSubmitting(false);
+  return;
+}
 
   // =========================
 // 3. HITUNG NILAI
@@ -239,7 +249,9 @@ console.log("KOSONG:", k);
 console.log("NILAI:", nilaiAkhir);
 
 
-  // SIMPAN LAPORAN
+  // =========================
+// 4. SIMPAN LAPORAN
+// =========================
 const { error: errInsert } = await supabase
   .from("laporan_ujian")
   .upsert(
@@ -257,32 +269,22 @@ const { error: errInsert } = await supabase
     }
   );
 
-// 🔥 TARO DI SINI
+// HANDLE ERROR
 if (errInsert) {
   console.log("❌ Gagal simpan laporan:", errInsert);
-  alert("Gagal simpan laporan: " + errInsert.message);
+  alert("Gagal simpan laporan: " + (errInsert as any).message);
   setSubmitting(false);
   return;
 }
 
-// LANJUT kalau sukses
+// ✅ SUKSES
+console.log("✅ Laporan berhasil disimpan");
+
+// =========================
+// 5. BERSIHIN & REDIRECT
+// =========================
 localStorage.removeItem("jawaban_ujian");
 router.push(`/peserta/hasil?id=${id}`);
-
-// 🔥 HANDLE ERROR BIAR KELIATAN
-if (errInsert) {
-  console.log("❌ Gagal simpan laporan:", errInsert);
-  alert("Gagal simpan laporan: " + errInsert.message);
-} else {
-  console.log("✅ Laporan berhasil disimpan");
-}
-
-  // =========================
-  // 5. BERSIHIN & REDIRECT
-  // =========================
-  localStorage.removeItem("jawaban_ujian");
-
-  router.push(`/peserta/hasil?id=${id}`);
 }
 
   return (
@@ -345,11 +347,16 @@ if (errInsert) {
           {current === soal.length - 1 ? (
 
   <button
-    onClick={submitUjian}
-    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded"
-  >
-    Submit Ujian
-  </button>
+  onClick={submitUjian}
+  disabled={submitting}
+  className={`px-6 py-2 rounded text-white ${
+    submitting
+      ? "bg-gray-400 cursor-not-allowed"
+      : "bg-green-600 hover:bg-green-700"
+  }`}
+>
+  {submitting ? "Mengirim..." : "Submit Ujian"}
+</button>
 
 ) : (
 
