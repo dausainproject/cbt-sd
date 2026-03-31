@@ -159,11 +159,7 @@ if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
     return;
   }
 
-console.log("DATA LAPORAN:", {
-  id_asesmen: Number(id),
-  no_peserta: noPeserta,
-  nilai: nilaiAkhir,
-});
+
   // =========================
   // 1. SIMPAN JAWABAN
   // =========================
