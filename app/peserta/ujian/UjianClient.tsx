@@ -210,54 +210,42 @@ let s = 0;
 let k = 0;
 
 soalDB?.forEach((item) => {
+  const jwbRaw = jawaban[item.id];
+  let kunciRaw = item.kunci;
 
-  const jwb = jawaban[item.id];
-
-  let kunci = item.kunci;
-
-  try {
-    if (typeof kunci === "string") {
-      kunci = JSON.parse(kunci);
-    }
-  } catch {}
-
-  function bersihin(text:any){
-  return String(text || "")
-    .replace(/^"+|"+$/g, "") // 🔥 hapus tanda kutip di awal & akhir
-    .trim()
-    .toLowerCase();
-}
-
-const jawabanUser = bersihin(jwb);
-const kunciFinal = bersihin(kunci);
-
-  if (!jawabanUser) {
-    k++;
-  } 
-  else if (jawabanUser === kunciFinal) {
-    b++;
-  } 
-  else {
-    s++;
+  // --- 1. NORMALISASI KUNCI (DB) ---
+  let kunciFinal = "";
+  if (Array.isArray(kunciRaw)) {
+    // Kalau PGK: ["A", "B"] -> "a,b"
+    kunciFinal = kunciRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
+  } else if (typeof kunciRaw === "object" && kunciRaw !== null) {
+    // Kalau BS Kompleks: {"1":"B", "2":"S"} -> "b,s"
+    kunciFinal = Object.values(kunciRaw).map(v => String(v).toLowerCase().trim()).join(",");
+  } else {
+    // Kalau PG Biasa: "A" -> "a"
+    kunciFinal = String(kunciRaw || "").replace(/"/g, "").toLowerCase().trim();
   }
 
-});
+  // --- 2. NORMALISASI JAWABAN (USER) ---
+  let jawabanUserFinal = "";
+  if (Array.isArray(jwbRaw)) {
+    jawabanUserFinal = jwbRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
+  } else if (typeof jwbRaw === "object" && jwbRaw !== null) {
+    jawabanUserFinal = Object.values(jwbRaw).map(v => String(v).toLowerCase().trim()).join(",");
+  } else {
+    jawabanUserFinal = String(jwbRaw || "").replace(/"/g, "").toLowerCase().trim();
+  }
 
-// 🔥 INI YANG LO LUPA
-const nilaiAkhir =
-  soalDB && soalDB.length > 0
-    ? Math.round((b / soalDB.length) * 100)
-    : 0;
+  // --- 3. BANDINGKAN ---
+  console.log(`DEBUG ID ${item.id} | User: [${jawabanUserFinal}] | Kunci: [${kunciFinal}]`);
 
-console.log("BENAR:", b);
-console.log("SALAH:", s);
-console.log("KOSONG:", k);
-console.log("NILAI:", nilaiAkhir);
-
-console.log("DATA LAPORAN:", {
-  id_asesmen: Number(id),
-  no_peserta: noPeserta,
-  nilai: nilaiAkhir,
+  if (!jawabanUserFinal) {
+    k++;
+  } else if (jawabanUserFinal === kunciFinal) {
+    b++;
+  } else {
+    s++;
+  }
 });
   // =========================
 // 4. SIMPAN LAPORAN
