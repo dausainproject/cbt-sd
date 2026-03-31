@@ -266,18 +266,27 @@ const { error: errInsert } = await supabase
   .from("laporan_ujian")
   .upsert(
     {
-      id_asesmen: Number(id),
-      no_peserta: noPeserta,
+      id_asesmen: Number(id), // Pastikan ini angka sesuai database
+      no_peserta: String(noPeserta), // Pastikan ini string
       nilai: nilaiAkhir,
       jumlah_benar: b,
       jumlah_salah: s,
+      jumlah_kosong: k, // Tambahin ini kalau mau lengkap
       status: "selesai",
-      selesai_pada: new Date(),
+      selesai_pada: new Date().toISOString(), // Pakai ISO string biar DB gak bingung
     },
     {
       onConflict: "no_peserta,id_asesmen",
     }
   );
+
+// HANDLE ERROR
+if (errInsert) {
+  console.log("❌ Gagal simpan laporan:", errInsert);
+  alert("Gagal simpan laporan: " + errInsert.message);
+  setSubmitting(false);
+  return;
+}
 
 // HANDLE ERROR
 if (errInsert) {
