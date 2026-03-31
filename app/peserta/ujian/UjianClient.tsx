@@ -138,160 +138,113 @@ function simpanJawaban(idSoal:number, value:string){
 }
 
 {/* kirim / submit jawaban */}
-async function submitUjian(){
-
-  if (submitting) return; // 🔥 cegah double klik
+async function submitUjian() {
+  if (submitting) return;
   setSubmitting(true);
 
   const noPeserta = localStorage.getItem("no_peserta");
 
-// 🔥 DEBUG WAJIB
-console.log("ID:", id);
-console.log("NO PESERTA:", noPeserta);
+  if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
+    alert("No peserta tidak valid");
+    setSubmitting(false);
+    return;
+  }
 
-// 🔥 VALIDASI CLEAN
-if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
-  alert("No peserta tidak valid");
-  setSubmitting(false);
-  return;
-}
-
-
-  // =========================
-  // 1. SIMPAN JAWABAN
-  // =========================
+  // 1. SIMPAN JAWABAN DETAIL
   const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
     no_peserta: noPeserta,
     id_soal: Number(id_soal),
     id_asesmen: Number(id),
-    jawaban: jwb
+    jawaban: jwb,
   }));
 
-  const { error } = await supabase
-  .from("jawaban_peserta")
-  .upsert(dataKirim, {
-    onConflict: "no_peserta,id_soal,id_asesmen"
+  const { error: errJawab } = await supabase
+    .from("jawaban_peserta")
+    .upsert(dataKirim, { onConflict: "no_peserta,id_soal,id_asesmen" });
+
+  if (errJawab) {
+    console.error(errJawab);
+    alert(errJawab.message);
+    setSubmitting(false);
+    return;
+  }
+
+  // 2. AMBIL KUNCI UNTUK HITUNG NILAI
+  const { data: soalDB, error: errSoal } = await supabase
+    .from("bank_soal")
+    .select("id, kunci")
+    .eq("id_asesmen", id);
+
+  if (errSoal || !soalDB) {
+    alert("Gagal mengambil kunci jawaban");
+    setSubmitting(false);
+    return;
+  }
+
+  // 3. HITUNG NILAI (Definisikan variabel di luar loop agar bisa diakses di bawah)
+  let b = 0;
+  let s = 0;
+  let k = 0;
+
+  soalDB.forEach((item) => {
+    const jwbRaw = jawaban[item.id];
+    const kunciRaw = item.kunci;
+
+    // Normalisasi Kunci
+    let kunciFinal = "";
+    if (Array.isArray(kunciRaw)) {
+      kunciFinal = kunciRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
+    } else if (typeof kunciRaw === "object" && kunciRaw !== null) {
+      kunciFinal = Object.values(kunciRaw).map(v => String(v).toLowerCase().trim()).join(",");
+    } else {
+      kunciFinal = String(kunciRaw || "").replace(/"/g, "").toLowerCase().trim();
+    }
+
+    // Normalisasi Jawaban User
+    let userFinal = "";
+    if (Array.isArray(jwbRaw)) {
+      userFinal = jwbRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
+    } else if (typeof jwbRaw === "object" && jwbRaw !== null) {
+      userFinal = Object.values(jwbRaw).map(v => String(v).toLowerCase().trim()).join(",");
+    } else {
+      userFinal = String(jwbRaw || "").replace(/"/g, "").toLowerCase().trim();
+    }
+
+    if (!userFinal) k++;
+    else if (userFinal === kunciFinal) b++;
+    else s++;
   });
 
-if (error) {
-  console.log(error);
-  alert(error.message);
-  setSubmitting(false); // 🔥 WAJIB
-  return;
-}
+  // HITUNG NILAI AKHIR (Di luar loop forEach)
+  const nilaiAkhir = soalDB.length > 0 ? Math.round((b / soalDB.length) * 100) : 0;
 
-  // =========================
-  // 2. AMBIL KUNCI JAWABAN
-  // =========================
-  const { data: soalDB, error: errSoal } = await supabase
-  .from("bank_soal")
-  .select("id, kunci")
-  .eq("id_asesmen", id);
+  // 4. SIMPAN LAPORAN
+  const { error: errInsert } = await supabase
+    .from("laporan_ujian")
+    .upsert(
+      {
+        id_asesmen: Number(id),
+        no_peserta: String(noPeserta),
+        nilai: nilaiAkhir,
+        jumlah_benar: b,
+        jumlah_salah: s,
+        jumlah_kosong: k,
+        status: "selesai",
+        selesai_pada: new Date().toISOString(),
+      },
+      { onConflict: "no_peserta,id_asesmen" }
+    );
 
-// 🔥 HANDLE ERROR QUERY
-if (errSoal) {
-  console.log(errSoal);
-  setSubmitting(false);
-  return;
-}
-
-// 🔥 TARO DI SINI
-if (!soalDB || soalDB.length === 0) {
-  alert("Soal tidak ditemukan");
-  setSubmitting(false);
-  return;
-}
-
-  // =========================
-// 3. HITUNG NILAI
-// =========================
-let b = 0;
-let s = 0;
-let k = 0;
-
-soalDB?.forEach((item) => {
-  const jwbRaw = jawaban[item.id];
-  let kunciRaw = item.kunci;
-
-  // --- 1. NORMALISASI KUNCI (DB) ---
-  let kunciFinal = "";
-  if (Array.isArray(kunciRaw)) {
-    // Kalau PGK: ["A", "B"] -> "a,b"
-    kunciFinal = kunciRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
-  } else if (typeof kunciRaw === "object" && kunciRaw !== null) {
-    // Kalau BS Kompleks: {"1":"B", "2":"S"} -> "b,s"
-    kunciFinal = Object.values(kunciRaw).map(v => String(v).toLowerCase().trim()).join(",");
-  } else {
-    // Kalau PG Biasa: "A" -> "a"
-    kunciFinal = String(kunciRaw || "").replace(/"/g, "").toLowerCase().trim();
+  if (errInsert) {
+    console.error("❌ Gagal simpan laporan:", errInsert);
+    alert("Gagal simpan laporan: " + errInsert.message);
+    setSubmitting(false);
+    return;
   }
 
-  // --- 2. NORMALISASI JAWABAN (USER) ---
-  let jawabanUserFinal = "";
-  if (Array.isArray(jwbRaw)) {
-    jawabanUserFinal = jwbRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
-  } else if (typeof jwbRaw === "object" && jwbRaw !== null) {
-    jawabanUserFinal = Object.values(jwbRaw).map(v => String(v).toLowerCase().trim()).join(",");
-  } else {
-    jawabanUserFinal = String(jwbRaw || "").replace(/"/g, "").toLowerCase().trim();
-  }
-
-  // --- 3. BANDINGKAN ---
-  console.log(`DEBUG ID ${item.id} | User: [${jawabanUserFinal}] | Kunci: [${kunciFinal}]`);
-
-  if (!jawabanUserFinal) {
-    k++;
-  } else if (jawabanUserFinal === kunciFinal) {
-    b++;
-  } else {
-    s++;
-  }
-});
-  // =========================
-// 4. SIMPAN LAPORAN
-// =========================
-const { error: errInsert } = await supabase
-  .from("laporan_ujian")
-  .upsert(
-    {
-      id_asesmen: Number(id), // Pastikan ini angka sesuai database
-      no_peserta: String(noPeserta), // Pastikan ini string
-      nilai: nilaiAkhir,
-      jumlah_benar: b,
-      jumlah_salah: s,
-      jumlah_kosong: k, // Tambahin ini kalau mau lengkap
-      status: "selesai",
-      selesai_pada: new Date().toISOString(), // Pakai ISO string biar DB gak bingung
-    },
-    {
-      onConflict: "no_peserta,id_asesmen",
-    }
-  );
-
-// HANDLE ERROR
-if (errInsert) {
-  console.log("❌ Gagal simpan laporan:", errInsert);
-  alert("Gagal simpan laporan: " + errInsert.message);
-  setSubmitting(false);
-  return;
-}
-
-// HANDLE ERROR
-if (errInsert) {
-  console.log("❌ Gagal simpan laporan:", errInsert);
-  alert("Gagal simpan laporan: " + (errInsert as any).message);
-  setSubmitting(false);
-  return;
-}
-
-// ✅ SUKSES
-console.log("✅ Laporan berhasil disimpan");
-
-// =========================
-// 5. BERSIHIN & REDIRECT
-// =========================
-localStorage.removeItem("jawaban_ujian");
-router.push(`/peserta/hasil?id=${id}`);
+  // 5. BERSIHIN & REDIRECT
+  localStorage.removeItem("jawaban_ujian");
+  router.push(`/peserta/hasil?id=${id}`);
 }
 
   return (
