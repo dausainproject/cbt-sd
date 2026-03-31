@@ -145,12 +145,25 @@ async function submitUjian(){
 
   const noPeserta = localStorage.getItem("no_peserta");
 
+console.log("NO PESERTA DARI LOCAL:", noPeserta);
+
+if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
+  alert("No peserta tidak valid");
+  setSubmitting(false);
+  return;
+}
+
   if (!noPeserta) {
     alert("Peserta tidak ditemukan");
     setSubmitting(false); // 🔥 balikin state biar bisa klik lagi
     return;
   }
 
+console.log("DATA LAPORAN:", {
+  id_asesmen: Number(id),
+  no_peserta: noPeserta,
+  nilai: nilaiAkhir,
+});
   // =========================
   // 1. SIMPAN JAWABAN
   // =========================
