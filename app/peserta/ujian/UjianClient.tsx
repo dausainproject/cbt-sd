@@ -143,14 +143,13 @@ async function submitUjian() {
   setSubmitting(true);
 
   const noPeserta = localStorage.getItem("no_peserta");
-
   if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
     alert("No peserta tidak valid");
     setSubmitting(false);
     return;
   }
 
-  // 1. SIMPAN JAWABAN DETAIL KE DATABASE
+  // 1. Simpan jawaban detail ke Supabase
   const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
     no_peserta: noPeserta,
     id_soal: Number(id_soal),
@@ -163,106 +162,86 @@ async function submitUjian() {
     .upsert(dataKirim, { onConflict: "no_peserta,id_soal,id_asesmen" });
 
   if (errJawab) {
-    console.error(errJawab);
-    alert(errJawab.message);
+    console.error("Gagal simpan jawaban_peserta:", errJawab);
     setSubmitting(false);
     return;
   }
 
-  // 2. AMBIL KUNCI DARI DATABASE
+  // 2. Ambil kunci dari bank_soal
   const { data: soalDB, error: errSoal } = await supabase
     .from("bank_soal")
-    .select("id, kunci")
+    .select("id, kunci, pilihan")
     .eq("id_asesmen", id);
 
   if (errSoal || !soalDB) {
-    alert("Gagal mengambil kunci jawaban");
+    alert("Gagal ambil kunci");
     setSubmitting(false);
     return;
   }
 
-  // 3. HITUNG NILAI DENGAN MAPPING LABEL
-  let b = 0;
-  let s = 0;
-  let k = 0;
+  let b = 0, s = 0, k = 0;
 
   soalDB.forEach((item) => {
-    const jwbRaw = jawaban[item.id];
-    const kunciRaw = item.kunci;
-    
-    // Cari data soal asli dari state untuk mendapatkan daftar pilihan
-    const soalAsli = soal.find(soalItem => soalItem.id === item.id);
+    const jwbRaw = jawaban[item.id]; // Jawaban dari state (misal: "Candi Borobudur")
+    const kunciRaw = item.kunci;     // Kunci dari DB (misal: "B")
 
-    // Normalisasi Kunci (Database)
-    let kunciFinal = "";
-    if (Array.isArray(kunciRaw)) {
-      kunciFinal = kunciRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
-    } else if (typeof kunciRaw === "object" && kunciRaw !== null) {
-      kunciFinal = Object.values(kunciRaw).map(v => String(v).toLowerCase().trim()).join(",");
-    } else {
-      kunciFinal = String(kunciRaw || "").replace(/"/g, "").toLowerCase().trim();
-    }
+    // --- NORMALISASI KUNCI ---
+    let kunciFinal = String(kunciRaw || "").toLowerCase().trim().replace(/"/g, "");
 
-    // Normalisasi Jawaban (User)
-    let userFinal = "";
-    if (Array.isArray(jwbRaw)) {
-      userFinal = jwbRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
-    } else if (typeof jwbRaw === "object" && jwbRaw !== null) {
-      userFinal = Object.values(jwbRaw).map(v => String(v).toLowerCase().trim()).join(",");
-    } else {
-      userFinal = String(jwbRaw || "").replace(/"/g, "").toLowerCase().trim();
-    }
+    // --- NORMALISASI JAWABAN USER ---
+    let userFinal = String(jwbRaw || "").toLowerCase().trim().replace(/"/g, "");
 
-    // LOGIC SAKTI: Map Teks ke Huruf (A/B/C)
-    // Jika kunci di DB adalah satu huruf (a/b/c) tapi user mengirim teks lengkap
-    if (kunciFinal.length === 1 && userFinal.length > 1 && soalAsli) {
-      const indexPilihan = soalAsli.pilihan.findIndex(
-        p => p.toLowerCase().trim() === userFinal
-      );
-      if (indexPilihan !== -1) {
-        // Mengonversi index (0, 1, 2) menjadi huruf (a, b, c)
-        userFinal = String.fromCharCode(97 + indexPilihan); 
+    // --- LOGIC MAPPING (PENYELAMAT) ---
+    // Jika user ngirim teks panjang, tapi kunci di DB cuma 1 huruf (A/B/C/D)
+    if (userFinal.length > 1 && kunciFinal.length === 1) {
+      // Ambil array pilihan soal ini
+      let pilihanArray: string[] = [];
+      if (Array.isArray(item.pilihan)) {
+        pilihanArray = item.pilihan;
+      } else if (typeof item.pilihan === "object" && item.pilihan !== null) {
+        pilihanArray = Object.values(item.pilihan);
+      }
+
+      // Cari index teks jawaban user di dalam array pilihan
+      const idx = pilihanArray.findIndex(p => String(p).toLowerCase().trim() === userFinal);
+      
+      if (idx !== -1) {
+        // Ubah index 0 jadi 'a', 1 jadi 'b', dst
+        userFinal = String.fromCharCode(97 + idx); 
       }
     }
 
-    // Bandingkan Hasil Akhir
-    if (!userFinal) {
-      k++;
-    } else if (userFinal === kunciFinal) {
-      b++;
-    } else {
-      s++;
-    }
+    console.log(`DEBUG SOAL ${item.id}: User=[${userFinal}] vs Kunci=[${kunciFinal}]`);
+
+    if (!userFinal) k++;
+    else if (userFinal === kunciFinal) b++;
+    else s++;
   });
 
   const nilaiAkhir = soalDB.length > 0 ? Math.round((b / soalDB.length) * 100) : 0;
 
-  // 4. SIMPAN KE LAPORAN_UJIAN
+  // 3. Simpan ke laporan_ujian
   const { error: errInsert } = await supabase
     .from("laporan_ujian")
-    .upsert(
-      {
-        id_asesmen: Number(id),
-        no_peserta: String(noPeserta),
-        nilai: nilaiAkhir,
-        jumlah_benar: b,
-        jumlah_salah: s,
-        jumlah_kosong: k,
-        status: "selesai",
-        selesai_pada: new Date().toISOString(),
-      },
-      { onConflict: "no_peserta,id_asesmen" }
-    );
+    .upsert({
+      id_asesmen: Number(id),
+      no_peserta: String(noPeserta),
+      nilai: nilaiAkhir,
+      jumlah_benar: b,
+      jumlah_salah: s,
+      jumlah_kosong: k,
+      status: "selesai",
+      selesai_pada: new Date().toISOString(),
+    }, { onConflict: "no_peserta,id_asesmen" });
 
   if (errInsert) {
+    console.error("Error Simpan Laporan:", errInsert);
     alert("Gagal simpan laporan: " + errInsert.message);
-    setSubmitting(false);
-    return;
+  } else {
+    localStorage.removeItem("jawaban_ujian");
+    router.push(`/peserta/hasil?id=${id}`);
   }
-
-  // 5. SELESAI
-  localStorage.removeItem("jawaban_ujian");
-  router.push(`/peserta/hasil?id=${id}`);
+  setSubmitting(false);
 }
 
   return (
