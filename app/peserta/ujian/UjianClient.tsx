@@ -137,6 +137,18 @@ function simpanJawaban(idSoal:number, value:string){
   localStorage.setItem("jawaban_ujian", JSON.stringify(baru));
 }
 
+// --- NORMALISASI JAWABAN & KUNCI ---
+function normalizeAnswer(val: any) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.map(v => String(v).toLowerCase().trim()).sort();
+  if (typeof val === "object") return Object.values(val).map(v => String(v).toLowerCase().trim()).sort();
+  // ganti "|" jadi array, hapus tanda petik
+  if (typeof val === "string") return val.replace(/"/g,"").split("|").map(v=>v.toLowerCase().trim()).sort();
+  return [String(val).toLowerCase().trim()];
+}
+
+
+
 {/* kirim / submit jawaban */}
 async function submitUjian() {
   if (submitting) return;
@@ -155,9 +167,13 @@ async function submitUjian() {
     id_soal: Number(id_soal),
     id_asesmen: Number(id),
     jawaban: jwb,
+    sesi: 1,
+    ragu: false
   }));
 
-  await supabase.from("jawaban_peserta").upsert(dataKirim, { onConflict: "no_peserta,id_soal,id_asesmen" });
+  await supabase
+    .from("jawaban_peserta")
+    .upsert(dataKirim, { onConflict: "no_peserta,id_soal,id_asesmen" });
 
   // 2. Ambil kunci
   const { data: soalDB, error: errSoal } = await supabase
@@ -171,34 +187,30 @@ async function submitUjian() {
     return;
   }
 
-  let b = 0, s = 0, k = 0;
+  // --- 3. Hitung benar, salah, kosong ---
+  let b = 0; // jumlah benar
+  let s = 0; // jumlah salah
+  let k = 0; // jumlah kosong
 
-  soalDB.forEach((item) => {
-    const jwbRaw = jawaban[item.id]; 
-    const kunciRaw = item.kunci;     
+  soalDB.forEach(item => {
+    const jwbRaw = jawaban[item.id]; // jawaban user
+    const kunciRaw = item.kunci;     // kunci soal
 
-    // --- NORMALISASI (HANYA MEMBERSIHKAN TEKS) ---
-    const getFinalString = (val: any) => {
-      if (!val) return "";
-      if (Array.isArray(val)) return val.map(v => String(v).toLowerCase().trim()).sort().join(",");
-      if (typeof val === "object") return Object.values(val).map(v => String(v).toLowerCase().trim()).sort().join(",");
-      // Ganti pipa (|) jadi koma (,) dan hapus tanda petik
-      return String(val).replace(/\|/g, ",").replace(/"/g, "").toLowerCase().trim();
-    };
+    const userArr = normalizeAnswer(jwbRaw);
+    const kunciArr = normalizeAnswer(kunciRaw);
 
-    const userFinal = getFinalString(jwbRaw);
-    const kunciFinal = getFinalString(kunciRaw);
-
-    console.log(`COMPARE ID ${item.id}: User=[${userFinal}] vs Kunci=[${kunciFinal}]`);
-
-    if (!userFinal) k++;
-    else if (userFinal === kunciFinal) b++;
-    else s++;
+    if (userArr.length === 0) {
+      k++; // kosong
+    } else if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
+      b++; // benar
+    } else {
+      s++; // salah
+    }
   });
 
   const nilaiAkhir = soalDB.length > 0 ? Math.round((b / soalDB.length) * 100) : 0;
 
-  // 3. Simpan laporan
+  // --- 4. Simpan laporan ---
   const { error: errInsert } = await supabase.from("laporan_ujian").upsert({
     id_asesmen: Number(id),
     no_peserta: String(noPeserta),
@@ -213,126 +225,9 @@ async function submitUjian() {
   if (!errInsert) {
     localStorage.removeItem("jawaban_ujian");
     router.push(`/peserta/hasil?id=${id}`);
+  } else {
+    alert("Gagal simpan laporan");
   }
+
   setSubmitting(false);
-}
-
-  return (
-  <div className="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-
-    {/* SIDEBAR NOMOR SOAL - DESKTOP */}
-    <div className="hidden md:block border rounded-lg p-4 bg-white shadow">
-
-      <h2 className="font-bold mb-4 text-center">
-        Nomor Soal
-      </h2>
-
-      <div className="grid grid-cols-5 gap-2">
-
-        {soal.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrent(i)}
-            className={`p-2 text-sm rounded transition
-            ${
-              i === current
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 hover:bg-gray-300"
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
-
-      </div>
-
-    </div>
-
-    {/* AREA SOAL */}
-    <div className="md:col-span-3">
-
-      <div className="bg-white shadow rounded-lg p-6">
-
-        <h1 className="text-lg md:text-xl font-bold mb-6">
-          Soal {current + 1} dari {soal.length}
-        </h1>
-
-        <SoalCard
-  soal={s}
-  value={jawaban[s.id] || ""}
-  onChange={(v:string)=>simpanJawaban(s.id,v)}
-/>
-
-        {/* NAVIGASI */}
-        <div className="flex justify-between mt-10">
-
-          <button
-            onClick={() => setCurrent(current - 1)}
-            disabled={current === 0}
-            className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
-          >
-            Sebelumnya
-          </button>
-
-          {current === soal.length - 1 ? (
-
-  <button
-  onClick={submitUjian}
-  disabled={submitting}
-  className={`px-6 py-2 rounded text-white ${
-    submitting
-      ? "bg-gray-400 cursor-not-allowed"
-      : "bg-green-600 hover:bg-green-700"
-  }`}
->
-  {submitting ? "Mengirim..." : "Submit Ujian"}
-</button>
-
-) : (
-
-  <button
-    onClick={() => setCurrent(current + 1)}
-    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-  >
-    Berikutnya
-  </button>
-
-)}
-
-        </div>
-
-      </div>
-
-      {/* NOMOR SOAL UNTUK HP */}
-      <div className="md:hidden mt-6 border rounded-lg p-4 bg-white shadow">
-
-        <h2 className="font-bold mb-3 text-center">
-          Nomor Soal
-        </h2>
-
-        <div className="grid grid-cols-5 gap-2">
-
-          {soal.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrent(i)}
-              className={`p-2 text-sm rounded
-              ${
-                i === current
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200"
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-);
 }
