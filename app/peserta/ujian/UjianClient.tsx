@@ -81,13 +81,29 @@ export default function UjianClient() {
   }
 
   function normalizeAnswer(val: any) {
-    if (!val) return [];
-    if (Array.isArray(val)) return val.map((v) => String(v).toLowerCase().trim()).sort();
-    if (typeof val === "object") return Object.values(val).map((v) => String(v).toLowerCase().trim()).sort();
-    if (typeof val === "string")
-      return val.replace(/"/g, "").split("|").map((v) => v.toLowerCase().trim()).sort();
-    return [String(val).toLowerCase().trim()];
+  if (!val) return [];
+
+  if (Array.isArray(val)) {
+    return val.map(v => String(v).toLowerCase().trim()).sort();
   }
+
+  if (typeof val === "object") {
+    return Object.values(val)
+      .map(v => String(v).toLowerCase().trim())
+      .sort();
+  }
+
+  if (typeof val === "string") {
+    return val
+      .replace(/"/g, "")
+      .split("|")
+      .map(v => v.split("_")[0]) // 🔥 BUANG _0 _1
+      .map(v => v.toLowerCase().trim())
+      .sort();
+  }
+
+  return [String(val).toLowerCase().trim()];
+}
 
   async function submitUjian() {
     if (submitting) return;
@@ -115,7 +131,7 @@ export default function UjianClient() {
 
     const { data: soalDB, error: errSoal } = await supabase
       .from("bank_soal")
-      .select("id, kunci")
+      .select("id, kunci, bobot")
       .eq("id_asesmen", id);
 
     if (errSoal || !soalDB) {
@@ -124,31 +140,43 @@ export default function UjianClient() {
       return;
     }
 
-    let b = 0,
-      s = 0,
-      k = 0;
+    let totalBobot = 0;
+let bobotBenar = 0;
+let jumlahSalah = 0;
+let jumlahKosong = 0;
 
-    soalDB.forEach((item) => {
-      const jwbRaw = jawaban[item.id];
-      const kunciRaw = item.kunci;
-      const userArr = normalizeAnswer(jwbRaw);
-      const kunciArr = normalizeAnswer(kunciRaw);
+soalDB.forEach(item => {
+  const jwbRaw = jawaban[item.id];
+  const kunciRaw = item.kunci;
 
-      if (userArr.length === 0) k++;
-      else if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) b++;
-      else s++;
-    });
+  const userArr = normalizeAnswer(jwbRaw);
+  const kunciArr = normalizeAnswer(kunciRaw);
 
-    const nilaiAkhir = soalDB.length > 0 ? Math.round((b / soalDB.length) * 100) : 0;
+  const bobot = item.bobot || 1;
+
+  totalBobot += bobot;
+
+  if (userArr.length === 0) {
+    jumlahKosong++;
+  } else if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
+    bobotBenar += bobot;
+  } else {
+    jumlahSalah++;
+  }
+});
+
+    const nilaiAkhir = totalBobot > 0
+  ? Math.round((bobotBenar / totalBobot) * 100)
+  : 0;
 
     const { error: errInsert } = await supabase.from("laporan_ujian").upsert(
       {
         id_asesmen: Number(id),
         no_peserta: String(noPeserta),
         nilai: nilaiAkhir,
-        jumlah_benar: b,
-        jumlah_salah: s,
-        jumlah_kosong: k,
+        jumlah_benar: bobotBenar,
+	jumlah_salah: jumlahSalah,
+	jumlah_kosong: jumlahKosong,
         status: "selesai",
         selesai_pada: new Date().toISOString(),
       },
