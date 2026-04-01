@@ -116,7 +116,7 @@ export default function UjianClient() {
     return;
   }
 
-  // ✅ 1. AMBIL SOAL DULU
+  // ✅ 1. AMBIL SOAL
   const { data: soalDB, error: errSoal } = await supabase
     .from("bank_soal")
     .select("id, kunci, bobot")
@@ -128,9 +128,8 @@ export default function UjianClient() {
     return;
   }
 
-  // ✅ 2. HITUNG + BUAT dataKirim (ADA POINT)
+  // ✅ 2. HITUNG + BUAT dataKirim
   let totalBobot = 0;
-  let bobotBenar = 0;
   let jumlahSalah = 0;
   let jumlahKosong = 0;
   let benarSoal = 0;
@@ -146,16 +145,18 @@ export default function UjianClient() {
 
     let point = 0;
 
+    // 🔥 LOGIC YANG BENAR (WAJIB else if)
     if (userArr.length === 0) {
       jumlahKosong++;
+      point = 0;
     } 
     else if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
       point = bobot;
-      bobotBenar += bobot;
       benarSoal++;
     } 
     else {
       jumlahSalah++;
+      point = 0;
     }
 
     return {
@@ -163,7 +164,7 @@ export default function UjianClient() {
       id_soal: item.id,
       id_asesmen: Number(id),
       jawaban: jwbRaw,
-      point: point, // 🔥 INI KUNCI
+      point: point,
       sesi: 1,
       ragu: false
     };
@@ -176,10 +177,15 @@ export default function UjianClient() {
       onConflict: "no_peserta,id_soal,id_asesmen",
     });
 
-  // ✅ 4. HITUNG NILAI FINAL
+  // ✅ 4. HITUNG NILAI FINAL (PAKAI POINT)
+  const totalPoint = dataKirim.reduce(
+    (sum, item) => sum + (item.point || 0),
+    0
+  );
+
   const nilaiAkhir =
     totalBobot > 0
-      ? Math.round((bobotBenar / totalBobot) * 100)
+      ? (totalPoint / totalBobot) * 100
       : 0;
 
   // ✅ 5. SIMPAN LAPORAN
@@ -187,9 +193,9 @@ export default function UjianClient() {
     {
       id_asesmen: Number(id),
       no_peserta: String(noPeserta),
-      nilai: nilaiAkhir,
-      jumlah_benar: bobotBenar,
-      jumlah_benar_soal: benarSoal,
+      nilai: nilaiAkhir,                 // 🔥 dari point
+      jumlah_benar: totalPoint,          // 🔥 total bobot benar
+      jumlah_benar_soal: benarSoal,      // 🔥 jumlah soal benar
       jumlah_salah: jumlahSalah,
       jumlah_kosong: jumlahKosong,
       status: "selesai",
