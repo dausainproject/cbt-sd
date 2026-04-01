@@ -144,6 +144,7 @@ export default function UjianClient() {
 let bobotBenar = 0;
 let jumlahSalah = 0;
 let jumlahKosong = 0;
+let benarSoal = 0;
 
 soalDB.forEach(item => {
   const jwbRaw = jawaban[item.id];
@@ -159,8 +160,9 @@ soalDB.forEach(item => {
   if (userArr.length === 0) {
     jumlahKosong++;
   } else if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
-    bobotBenar += bobot;
-  } else {
+  bobotBenar += bobot;
+  benarSoal++; // 🔥 TAMBAH DI SINI
+} else {
     jumlahSalah++;
   }
 });
@@ -175,6 +177,7 @@ soalDB.forEach(item => {
         no_peserta: String(noPeserta),
         nilai: nilaiAkhir,
         jumlah_benar: bobotBenar,
+		jumlah_benar_soal: benarSoal,
 	jumlah_salah: jumlahSalah,
 	jumlah_kosong: jumlahKosong,
         status: "selesai",
