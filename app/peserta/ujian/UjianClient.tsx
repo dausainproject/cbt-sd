@@ -106,95 +106,107 @@ export default function UjianClient() {
 }
 
   async function submitUjian() {
-    if (submitting) return;
-    setSubmitting(true);
+  if (submitting) return;
+  setSubmitting(true);
 
-    const noPeserta = localStorage.getItem("no_peserta");
-    if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
-      alert("No peserta tidak valid");
-      setSubmitting(false);
-      return;
+  const noPeserta = localStorage.getItem("no_peserta");
+  if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
+    alert("No peserta tidak valid");
+    setSubmitting(false);
+    return;
+  }
+
+  // ✅ 1. AMBIL SOAL DULU
+  const { data: soalDB, error: errSoal } = await supabase
+    .from("bank_soal")
+    .select("id, kunci, bobot")
+    .eq("id_asesmen", id);
+
+  if (errSoal || !soalDB) {
+    alert("Gagal ambil kunci");
+    setSubmitting(false);
+    return;
+  }
+
+  // ✅ 2. HITUNG + BUAT dataKirim (ADA POINT)
+  let totalBobot = 0;
+  let bobotBenar = 0;
+  let jumlahSalah = 0;
+  let jumlahKosong = 0;
+  let benarSoal = 0;
+
+  const dataKirim = soalDB.map(item => {
+    const jwbRaw = jawaban[item.id];
+
+    const userArr = normalizeAnswer(jwbRaw);
+    const kunciArr = normalizeAnswer(item.kunci);
+
+    const bobot = item.bobot || 1;
+    totalBobot += bobot;
+
+    let point = 0;
+
+    if (userArr.length === 0) {
+      jumlahKosong++;
+    } 
+    else if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
+      point = bobot;
+      bobotBenar += bobot;
+      benarSoal++;
+    } 
+    else {
+      jumlahSalah++;
     }
 
-    const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
+    return {
       no_peserta: noPeserta,
-      id_soal: Number(id_soal),
+      id_soal: item.id,
       id_asesmen: Number(id),
-      jawaban: jwb,
+      jawaban: jwbRaw,
+      point: point, // 🔥 INI KUNCI
       sesi: 1,
-      ragu: false,
-    }));
+      ragu: false
+    };
+  });
 
-    await supabase.from("jawaban_peserta").upsert(dataKirim, {
+  // ✅ 3. SIMPAN JAWABAN + POINT
+  await supabase
+    .from("jawaban_peserta")
+    .upsert(dataKirim, {
       onConflict: "no_peserta,id_soal,id_asesmen",
     });
 
-    const { data: soalDB, error: errSoal } = await supabase
-      .from("bank_soal")
-      .select("id, kunci, bobot")
-      .eq("id_asesmen", id);
+  // ✅ 4. HITUNG NILAI FINAL
+  const nilaiAkhir =
+    totalBobot > 0
+      ? Math.round((bobotBenar / totalBobot) * 100)
+      : 0;
 
-    if (errSoal || !soalDB) {
-      alert("Gagal ambil kunci");
-      setSubmitting(false);
-      return;
-    }
+  // ✅ 5. SIMPAN LAPORAN
+  const { error: errInsert } = await supabase.from("laporan_ujian").upsert(
+    {
+      id_asesmen: Number(id),
+      no_peserta: String(noPeserta),
+      nilai: nilaiAkhir,
+      jumlah_benar: bobotBenar,
+      jumlah_benar_soal: benarSoal,
+      jumlah_salah: jumlahSalah,
+      jumlah_kosong: jumlahKosong,
+      status: "selesai",
+      selesai_pada: new Date().toISOString(),
+    },
+    { onConflict: "no_peserta,id_asesmen" }
+  );
 
-    let totalBobot = 0;
-let bobotBenar = 0;
-let jumlahSalah = 0;
-let jumlahKosong = 0;
-let benarSoal = 0;
-
-soalDB.forEach(item => {
-  const jwbRaw = jawaban[item.id];
-  const kunciRaw = item.kunci;
-
-  const userArr = normalizeAnswer(jwbRaw);
-  const kunciArr = normalizeAnswer(kunciRaw);
-
-  const bobot = item.bobot || 1;
-
-  totalBobot += bobot;
-
-  if (userArr.length === 0) {
-    jumlahKosong++;
-  } else if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
-  bobotBenar += bobot;
-  benarSoal++; // 🔥 TAMBAH DI SINI
-} else {
-    jumlahSalah++;
+  if (!errInsert) {
+    localStorage.removeItem("jawaban_ujian");
+    router.push(`/peserta/hasil?id=${id}`);
+  } else {
+    alert("Gagal simpan laporan");
   }
-});
 
-    const nilaiAkhir = totalBobot > 0
-  ? Math.round((bobotBenar / totalBobot) * 100)
-  : 0;
-
-    const { error: errInsert } = await supabase.from("laporan_ujian").upsert(
-      {
-        id_asesmen: Number(id),
-        no_peserta: String(noPeserta),
-        nilai: nilaiAkhir,
-        jumlah_benar: bobotBenar,
-		jumlah_benar_soal: benarSoal,
-	jumlah_salah: jumlahSalah,
-	jumlah_kosong: jumlahKosong,
-        status: "selesai",
-        selesai_pada: new Date().toISOString(),
-      },
-      { onConflict: "no_peserta,id_asesmen" }
-    );
-
-    if (!errInsert) {
-      localStorage.removeItem("jawaban_ujian");
-      router.push(`/peserta/hasil?id=${id}`);
-    } else {
-      alert("Gagal simpan laporan");
-    }
-
-    setSubmitting(false);
-  }
+  setSubmitting(false);
+}
 
   if (loading) return <div className="p-10 text-center">Loading soal...</div>;
   if (soal.length === 0) return <div className="p-10 text-center">Soal belum tersedia</div>;
