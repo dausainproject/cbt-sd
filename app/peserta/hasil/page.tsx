@@ -39,116 +39,51 @@ function HasilContent() {
       }
 
     }
+	
+	async function loadHasil() {
+  const noPeserta = localStorage.getItem("no_peserta");
+
+  if (!noPeserta) {
+    console.log("no_peserta tidak ditemukan");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("laporan_ujian")
+    .select("*")
+    .eq("id_asesmen", id)
+    .eq("no_peserta", noPeserta)
+    .single();
+
+  if (error || !data) {
+    console.log(error);
+    return;
+  }
+
+  // 🔥 SET STATE DARI DB
+  setNilai(data.nilai);
+  setBenar(data.jumlah_benar_soal); // jumlah soal benar
+  setSalah(data.jumlah_salah);
+  setKosong(data.jumlah_kosong);
+
+  // (opsional kalau mau ringkasan nanti)
+}
+	
+	
 const noPeserta = localStorage.getItem("no_peserta");
 if (!noPeserta) {
   console.log("no_peserta tidak ditemukan");
   return;
 }
     
-	function normalizeAnswer(val: any) {
-  if (!val) return [];
-
-  if (Array.isArray(val)) {
-    return val.map(v => String(v).toLowerCase().trim()).sort();
-  }
-
-  if (typeof val === "object") {
-    return Object.values(val)
-      .map(v => String(v).toLowerCase().trim())
-      .sort();
-  }
-
-  if (typeof val === "string") {
-    return val
-      .replace(/"/g, "")
-      .split("|")
-      .map(v => v.toLowerCase().trim())
-      .sort();
-  }
-
-  return [String(val).toLowerCase().trim()];
-}
 	
-	async function hitungNilai() {
-
-      // ambil soal
-      const { data: soal, error: errSoal } = await supabase
-        .from("bank_soal")
-        .select("id, kunci, bobot")
-        .eq("id_asesmen", id);
-
-      if(errSoal){
-        console.log(errSoal);
-        return;
-      }
-
-      // ambil jawaban
-      const { data: jawaban, error: errJawaban } = await supabase
-        .from("jawaban_peserta")
-.select("id_soal, jawaban")
-.eq("id_asesmen", id)
-.eq("no_peserta", noPeserta);
-
-      if(errJawaban){
-        console.log(errJawaban);
-        return;
-      }
-console.log("Peserta:", noPeserta);
-console.log("Jawaban:", jawaban);
-      let b = 0;
-      let s = 0;
-      let k = 0;
-	  let totalBobot = 0; // ✅ taro sini
-	let skor = 0;       // ✅ taro sini
-
-      const detail: any[] = [];
-
-     soal?.forEach((item, index) => {
-
-  totalBobot += item.bobot;
-
-  const jwb = jawaban?.find(j => j.id_soal === item.id);
-
-  if (!jwb || !jwb.jawaban) {
-    k++;
-    detail.push({ no: index + 1, status: "kosong" });
-    return;
-  }
-
-  const userArr = normalizeAnswer(jwb.jawaban);
-  const kunciArr = normalizeAnswer(item.kunci);
-
-  if (userArr.length === 0) {
-    k++;
-    detail.push({ no: index + 1, status: "kosong" });
-  } 
-  else if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
-    b++;
-    skor += item.bobot; // ✅ penting
-    detail.push({ no: index + 1, status: "benar" });
-  } 
-  else {
-    s++;
-    detail.push({ no: index + 1, status: "salah" });
-  }
-
-});
-
-      const nilaiAkhir = totalBobot > 0
-  ? Math.round((skor / totalBobot) * 100)
-  : 0;
-
-      setBenar(b);
-      setSalah(s);
-      setKosong(k);
-      setNilai(nilaiAkhir);
-      setRingkasan(detail);
-    }
+	
+	
 
     if(id){
-      loadAsesmen();
-      hitungNilai();
-    }
+  loadAsesmen();
+  loadHasil();
+}
 
   },[id]);
 
@@ -216,26 +151,7 @@ console.log("Jawaban:", jawaban);
 
       </div>
 
-      {/* CARD RINGKASAN */}
-      <div className="mt-6 bg-white shadow rounded-lg p-6">
-
-        <h2 className="font-semibold mb-4">
-          Ringkasan Jawaban
-        </h2>
-
-        <div className="grid grid-cols-5 gap-2">
-
-          {ringkasan.map((item, i) => (
-            <div
-              key={i}
-              className={`p-2 rounded text-center text-white
-                ${item.status === "benar" ? "bg-green-500" : ""}
-                ${item.status === "salah" ? "bg-red-500" : ""}
-                ${item.status === "kosong" ? "bg-gray-400" : ""}
-              `}
-            >
-              {item.no}
-            </div>
+      
           ))}
 
         </div>
