@@ -167,10 +167,10 @@ async function submitUjian() {
     return;
   }
 
-  // 2. Ambil kunci dari bank_soal
+  // 2. Ambil kunci dari bank_soal (Sertakan 'tipe' buat jaga-jaga)
   const { data: soalDB, error: errSoal } = await supabase
     .from("bank_soal")
-    .select("id, kunci, pilihan")
+    .select("id, kunci, pilihan, tipe")
     .eq("id_asesmen", id);
 
   if (errSoal || !soalDB) {
@@ -182,36 +182,45 @@ async function submitUjian() {
   let b = 0, s = 0, k = 0;
 
   soalDB.forEach((item) => {
-    const jwbRaw = jawaban[item.id]; // Jawaban dari state (misal: "Candi Borobudur")
-    const kunciRaw = item.kunci;     // Kunci dari DB (misal: "B")
+    const jwbRaw = jawaban[item.id]; 
+    const kunciRaw = item.kunci;     
+    const soalAsli = soal.find(soalItem => soalItem.id === item.id);
 
-    // --- NORMALISASI KUNCI ---
-    let kunciFinal = String(kunciRaw || "").toLowerCase().trim().replace(/"/g, "");
+    // --- 🛠️ FIX LOGIC KUNCI (UNWRAP OBJECT/JSON) ---
+    let kunciFinal = "";
+    if (typeof kunciRaw === "object" && kunciRaw !== null) {
+      // Jika kunci berupa object/array (untuk PGK atau BS Kompleks)
+      // Kita ambil values-nya, lowercase, urutkan, lalu gabung dengan koma
+      kunciFinal = Object.values(kunciRaw)
+        .map(v => String(v).toLowerCase().trim())
+        .sort()
+        .join(",");
+    } else {
+      kunciFinal = String(kunciRaw || "").toLowerCase().trim().replace(/"/g, "");
+    }
 
-    // --- NORMALISASI JAWABAN USER ---
-    let userFinal = String(jwbRaw || "").toLowerCase().trim().replace(/"/g, "");
+    // --- 🛠️ FIX LOGIC JAWABAN USER ---
+    let userFinal = "";
+    if (Array.isArray(jwbRaw)) {
+      userFinal = jwbRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
+    } else {
+      // Ganti separator pipa (|) jadi koma (,) agar sinkron dengan kunciFinal
+      userFinal = String(jwbRaw || "")
+        .replace(/\|/g, ",")
+        .toLowerCase()
+        .trim()
+        .replace(/"/g, "");
+    }
 
-    // --- LOGIC MAPPING (PENYELAMAT) ---
-    // Jika user ngirim teks panjang, tapi kunci di DB cuma 1 huruf (A/B/C/D)
-    if (userFinal.length > 1 && kunciFinal.length === 1) {
-      // Ambil array pilihan soal ini
-      let pilihanArray: string[] = [];
-      if (Array.isArray(item.pilihan)) {
-        pilihanArray = item.pilihan;
-      } else if (typeof item.pilihan === "object" && item.pilihan !== null) {
-        pilihanArray = Object.values(item.pilihan);
-      }
-
-      // Cari index teks jawaban user di dalam array pilihan
-      const idx = pilihanArray.findIndex(p => String(p).toLowerCase().trim() === userFinal);
-      
+    // --- 🛠️ LOGIC MAPPING LABEL (Untuk PG Teks -> Huruf) ---
+    if (userFinal.length > 1 && kunciFinal.length === 1 && soalAsli) {
+      const idx = soalAsli.pilihan.findIndex(p => String(p).toLowerCase().trim() === userFinal);
       if (idx !== -1) {
-        // Ubah index 0 jadi 'a', 1 jadi 'b', dst
         userFinal = String.fromCharCode(97 + idx); 
       }
     }
 
-    console.log(`DEBUG SOAL ${item.id}: User=[${userFinal}] vs Kunci=[${kunciFinal}]`);
+    console.log(`CHECK SOAL ${item.id}: User=[${userFinal}] vs Kunci=[${kunciFinal}]`);
 
     if (!userFinal) k++;
     else if (userFinal === kunciFinal) b++;
