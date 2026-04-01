@@ -149,7 +149,7 @@ async function submitUjian() {
     return;
   }
 
-  // 1. Simpan jawaban detail ke Supabase
+  // 1. Simpan jawaban detail
   const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
     no_peserta: noPeserta,
     id_soal: Number(id_soal),
@@ -157,20 +157,12 @@ async function submitUjian() {
     jawaban: jwb,
   }));
 
-  const { error: errJawab } = await supabase
-    .from("jawaban_peserta")
-    .upsert(dataKirim, { onConflict: "no_peserta,id_soal,id_asesmen" });
+  await supabase.from("jawaban_peserta").upsert(dataKirim, { onConflict: "no_peserta,id_soal,id_asesmen" });
 
-  if (errJawab) {
-    console.error("Gagal simpan jawaban_peserta:", errJawab);
-    setSubmitting(false);
-    return;
-  }
-
-  // 2. Ambil kunci dari bank_soal (Sertakan 'tipe' buat jaga-jaga)
+  // 2. Ambil kunci
   const { data: soalDB, error: errSoal } = await supabase
     .from("bank_soal")
-    .select("id, kunci, pilihan, tipe")
+    .select("id, kunci")
     .eq("id_asesmen", id);
 
   if (errSoal || !soalDB) {
@@ -184,43 +176,20 @@ async function submitUjian() {
   soalDB.forEach((item) => {
     const jwbRaw = jawaban[item.id]; 
     const kunciRaw = item.kunci;     
-    const soalAsli = soal.find(soalItem => soalItem.id === item.id);
 
-    // --- 🛠️ FIX LOGIC KUNCI (UNWRAP OBJECT/JSON) ---
-    let kunciFinal = "";
-    if (typeof kunciRaw === "object" && kunciRaw !== null) {
-      // Jika kunci berupa object/array (untuk PGK atau BS Kompleks)
-      // Kita ambil values-nya, lowercase, urutkan, lalu gabung dengan koma
-      kunciFinal = Object.values(kunciRaw)
-        .map(v => String(v).toLowerCase().trim())
-        .sort()
-        .join(",");
-    } else {
-      kunciFinal = String(kunciRaw || "").toLowerCase().trim().replace(/"/g, "");
-    }
+    // --- NORMALISASI (HANYA MEMBERSIHKAN TEKS) ---
+    const getFinalString = (val: any) => {
+      if (!val) return "";
+      if (Array.isArray(val)) return val.map(v => String(v).toLowerCase().trim()).sort().join(",");
+      if (typeof val === "object") return Object.values(val).map(v => String(v).toLowerCase().trim()).sort().join(",");
+      // Ganti pipa (|) jadi koma (,) dan hapus tanda petik
+      return String(val).replace(/\|/g, ",").replace(/"/g, "").toLowerCase().trim();
+    };
 
-    // --- 🛠️ FIX LOGIC JAWABAN USER ---
-    let userFinal = "";
-    if (Array.isArray(jwbRaw)) {
-      userFinal = jwbRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
-    } else {
-      // Ganti separator pipa (|) jadi koma (,) agar sinkron dengan kunciFinal
-      userFinal = String(jwbRaw || "")
-        .replace(/\|/g, ",")
-        .toLowerCase()
-        .trim()
-        .replace(/"/g, "");
-    }
+    const userFinal = getFinalString(jwbRaw);
+    const kunciFinal = getFinalString(kunciRaw);
 
-    // --- 🛠️ LOGIC MAPPING LABEL (Untuk PG Teks -> Huruf) ---
-    if (userFinal.length > 1 && kunciFinal.length === 1 && soalAsli) {
-      const idx = soalAsli.pilihan.findIndex(p => String(p).toLowerCase().trim() === userFinal);
-      if (idx !== -1) {
-        userFinal = String.fromCharCode(97 + idx); 
-      }
-    }
-
-    console.log(`CHECK SOAL ${item.id}: User=[${userFinal}] vs Kunci=[${kunciFinal}]`);
+    console.log(`COMPARE ID ${item.id}: User=[${userFinal}] vs Kunci=[${kunciFinal}]`);
 
     if (!userFinal) k++;
     else if (userFinal === kunciFinal) b++;
@@ -229,24 +198,19 @@ async function submitUjian() {
 
   const nilaiAkhir = soalDB.length > 0 ? Math.round((b / soalDB.length) * 100) : 0;
 
-  // 3. Simpan ke laporan_ujian
-  const { error: errInsert } = await supabase
-    .from("laporan_ujian")
-    .upsert({
-      id_asesmen: Number(id),
-      no_peserta: String(noPeserta),
-      nilai: nilaiAkhir,
-      jumlah_benar: b,
-      jumlah_salah: s,
-      jumlah_kosong: k,
-      status: "selesai",
-      selesai_pada: new Date().toISOString(),
-    }, { onConflict: "no_peserta,id_asesmen" });
+  // 3. Simpan laporan
+  const { error: errInsert } = await supabase.from("laporan_ujian").upsert({
+    id_asesmen: Number(id),
+    no_peserta: String(noPeserta),
+    nilai: nilaiAkhir,
+    jumlah_benar: b,
+    jumlah_salah: s,
+    jumlah_kosong: k,
+    status: "selesai",
+    selesai_pada: new Date().toISOString(),
+  }, { onConflict: "no_peserta,id_asesmen" });
 
-  if (errInsert) {
-    console.error("Error Simpan Laporan:", errInsert);
-    alert("Gagal simpan laporan: " + errInsert.message);
-  } else {
+  if (!errInsert) {
     localStorage.removeItem("jawaban_ujian");
     router.push(`/peserta/hasil?id=${id}`);
   }
