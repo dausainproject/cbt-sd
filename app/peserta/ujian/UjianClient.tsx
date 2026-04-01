@@ -119,7 +119,7 @@ export default function UjianClient() {
   // ✅ 1. AMBIL SOAL
   const { data: soalDB, error: errSoal } = await supabase
     .from("bank_soal")
-    .select("id, kunci, bobot")
+    .select("id, kunci, bobot, tipe")
     .eq("id_asesmen", id);
 
   if (errSoal || !soalDB) {
@@ -147,17 +147,54 @@ export default function UjianClient() {
 
     // 🔥 LOGIC YANG BENAR (WAJIB else if)
     if (userArr.length === 0) {
-      jumlahKosong++;
-      point = 0;
-    } 
-    else if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
+  jumlahKosong++;
+  point = 0;
+} 
+else {
+
+  if (item.tipe === "pg" || item.tipe === "bs") {
+    // ✅ HARUS EXACT
+    if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
       point = bobot;
       benarSoal++;
-    } 
-    else {
+    } else {
       jumlahSalah++;
-      point = 0;
     }
+  }
+
+  else if (item.tipe === "pgk") {
+    // ✅ PARSIAL (tanpa penalti)
+    let benarCount = 0;
+
+    kunciArr.forEach(k => {
+      if (userArr.includes(k)) {
+        benarCount++;
+      }
+    });
+
+    point = benarCount; // 🔥 1 jawaban benar = 1 point
+
+    if (benarCount > 0) benarSoal++;
+    else jumlahSalah++;
+  }
+
+  else if (item.tipe === "bs_kompleks") {
+    // ✅ PARSIAL BERDASARKAN INDEX
+    let benarCount = 0;
+
+    for (let i = 0; i < kunciArr.length; i++) {
+      if (userArr[i] === kunciArr[i]) {
+        benarCount++;
+      }
+    }
+
+    point = benarCount;
+
+    if (benarCount > 0) benarSoal++;
+    else jumlahSalah++;
+  }
+
+}
 
     return {
       no_peserta: noPeserta,
