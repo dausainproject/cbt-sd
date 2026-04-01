@@ -44,12 +44,37 @@ if (!noPeserta) {
   console.log("no_peserta tidak ditemukan");
   return;
 }
-    async function hitungNilai() {
+    
+	function normalizeAnswer(val: any) {
+  if (!val) return [];
+
+  if (Array.isArray(val)) {
+    return val.map(v => String(v).toLowerCase().trim()).sort();
+  }
+
+  if (typeof val === "object") {
+    return Object.values(val)
+      .map(v => String(v).toLowerCase().trim())
+      .sort();
+  }
+
+  if (typeof val === "string") {
+    return val
+      .replace(/"/g, "")
+      .split("|")
+      .map(v => v.toLowerCase().trim())
+      .sort();
+  }
+
+  return [String(val).toLowerCase().trim()];
+}
+	
+	async function hitungNilai() {
 
       // ambil soal
       const { data: soal, error: errSoal } = await supabase
         .from("bank_soal")
-        .select("id, kunci")
+        .select("id, kunci, bobot")
         .eq("id_asesmen", id);
 
       if(errSoal){
@@ -73,31 +98,45 @@ console.log("Jawaban:", jawaban);
       let b = 0;
       let s = 0;
       let k = 0;
+	  let totalBobot = 0; // ✅ taro sini
+	let skor = 0;       // ✅ taro sini
 
       const detail: any[] = [];
 
-      soal?.forEach((item, index) => {
+     soal?.forEach((item, index) => {
 
-        const jwb = jawaban?.find(j => j.id_soal === item.id);
+  totalBobot += item.bobot;
 
-        if (!jwb || !jwb.jawaban) {
-          k++;
-          detail.push({ no: index + 1, status: "kosong" });
-        } 
-        else if (JSON.stringify(jwb.jawaban) === JSON.stringify(item.kunci)) {
-          b++;
-          detail.push({ no: index + 1, status: "benar" });
-        } 
-        else {
-          s++;
-          detail.push({ no: index + 1, status: "salah" });
-        }
+  const jwb = jawaban?.find(j => j.id_soal === item.id);
 
-      });
+  if (!jwb || !jwb.jawaban) {
+    k++;
+    detail.push({ no: index + 1, status: "kosong" });
+    return;
+  }
 
-      const nilaiAkhir = soal && soal.length > 0
-        ? Math.round((b / soal.length) * 100)
-        : 0;
+  const userArr = normalizeAnswer(jwb.jawaban);
+  const kunciArr = normalizeAnswer(item.kunci);
+
+  if (userArr.length === 0) {
+    k++;
+    detail.push({ no: index + 1, status: "kosong" });
+  } 
+  else if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
+    b++;
+    skor += item.bobot; // ✅ penting
+    detail.push({ no: index + 1, status: "benar" });
+  } 
+  else {
+    s++;
+    detail.push({ no: index + 1, status: "salah" });
+  }
+
+});
+
+      const nilaiAkhir = totalBobot > 0
+  ? Math.round((skor / totalBobot) * 100)
+  : 0;
 
       setBenar(b);
       setSalah(s);
