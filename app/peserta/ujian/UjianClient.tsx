@@ -150,7 +150,7 @@ async function submitUjian() {
     return;
   }
 
-  // 1. SIMPAN JAWABAN DETAIL
+  // 1. SIMPAN JAWABAN DETAIL KE DATABASE
   const dataKirim = Object.entries(jawaban).map(([id_soal, jwb]) => ({
     no_peserta: noPeserta,
     id_soal: Number(id_soal),
@@ -169,7 +169,7 @@ async function submitUjian() {
     return;
   }
 
-  // 2. AMBIL KUNCI UNTUK HITUNG NILAI
+  // 2. AMBIL KUNCI DARI DATABASE
   const { data: soalDB, error: errSoal } = await supabase
     .from("bank_soal")
     .select("id, kunci")
@@ -181,7 +181,7 @@ async function submitUjian() {
     return;
   }
 
-  // 3. HITUNG NILAI (Definisikan variabel di luar loop agar bisa diakses di bawah)
+  // 3. HITUNG NILAI DENGAN MAPPING LABEL
   let b = 0;
   let s = 0;
   let k = 0;
@@ -189,8 +189,11 @@ async function submitUjian() {
   soalDB.forEach((item) => {
     const jwbRaw = jawaban[item.id];
     const kunciRaw = item.kunci;
+    
+    // Cari data soal asli dari state untuk mendapatkan daftar pilihan
+    const soalAsli = soal.find(soalItem => soalItem.id === item.id);
 
-    // Normalisasi Kunci
+    // Normalisasi Kunci (Database)
     let kunciFinal = "";
     if (Array.isArray(kunciRaw)) {
       kunciFinal = kunciRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
@@ -200,7 +203,7 @@ async function submitUjian() {
       kunciFinal = String(kunciRaw || "").replace(/"/g, "").toLowerCase().trim();
     }
 
-    // Normalisasi Jawaban User
+    // Normalisasi Jawaban (User)
     let userFinal = "";
     if (Array.isArray(jwbRaw)) {
       userFinal = jwbRaw.map(v => String(v).toLowerCase().trim()).sort().join(",");
@@ -210,15 +213,31 @@ async function submitUjian() {
       userFinal = String(jwbRaw || "").replace(/"/g, "").toLowerCase().trim();
     }
 
-    if (!userFinal) k++;
-    else if (userFinal === kunciFinal) b++;
-    else s++;
+    // LOGIC SAKTI: Map Teks ke Huruf (A/B/C)
+    // Jika kunci di DB adalah satu huruf (a/b/c) tapi user mengirim teks lengkap
+    if (kunciFinal.length === 1 && userFinal.length > 1 && soalAsli) {
+      const indexPilihan = soalAsli.pilihan.findIndex(
+        p => p.toLowerCase().trim() === userFinal
+      );
+      if (indexPilihan !== -1) {
+        // Mengonversi index (0, 1, 2) menjadi huruf (a, b, c)
+        userFinal = String.fromCharCode(97 + indexPilihan); 
+      }
+    }
+
+    // Bandingkan Hasil Akhir
+    if (!userFinal) {
+      k++;
+    } else if (userFinal === kunciFinal) {
+      b++;
+    } else {
+      s++;
+    }
   });
 
-  // HITUNG NILAI AKHIR (Di luar loop forEach)
   const nilaiAkhir = soalDB.length > 0 ? Math.round((b / soalDB.length) * 100) : 0;
 
-  // 4. SIMPAN LAPORAN
+  // 4. SIMPAN KE LAPORAN_UJIAN
   const { error: errInsert } = await supabase
     .from("laporan_ujian")
     .upsert(
@@ -236,13 +255,12 @@ async function submitUjian() {
     );
 
   if (errInsert) {
-    console.error("❌ Gagal simpan laporan:", errInsert);
     alert("Gagal simpan laporan: " + errInsert.message);
     setSubmitting(false);
     return;
   }
 
-  // 5. BERSIHIN & REDIRECT
+  // 5. SELESAI
   localStorage.removeItem("jawaban_ujian");
   router.push(`/peserta/hasil?id=${id}`);
 }
