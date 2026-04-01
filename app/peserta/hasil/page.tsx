@@ -152,11 +152,7 @@ if (!noPeserta) {
       </div>
 
       
-          ))}
-
-        </div>
-
-      </div>
+          
 
     </div>
   );
