@@ -148,7 +148,7 @@ const handleGeneratePassword = async () => {
   }
 };
 
-// ================= TOMBOL TOGLE AKTIF =================
+// ================= TOMBOL TOGGLE AKTIF =================
 const handleToggleAllStatus = async () => {
   const newStatus = !allActive;
 
@@ -160,16 +160,20 @@ const handleToggleAllStatus = async () => {
   if (!confirm) return;
 
   try {
-    const { error } = await supabase
-      .from("data_siswa")
-      .update({ status: newStatus });
+    for (const p of participants) {
+      const { error } = await supabase
+        .from("data_siswa")
+        .update({ status: newStatus })
+        .eq("no_peserta", p.no_peserta);
 
-    if (error) {
-      alert("Gagal update status");
-      return;
+      if (error) {
+        console.error(error);
+        alert("Gagal update salah satu data");
+        return;
+      }
     }
 
-    // 🔥 update UI langsung
+    // 🔥 update UI langsung tanpa fetch ulang
     setParticipants((prev) =>
       prev.map((p) => ({
         ...p,
@@ -178,13 +182,10 @@ const handleToggleAllStatus = async () => {
     );
 
   } catch (err) {
+    console.error(err);
     alert("Terjadi error");
   }
 };
-
-  const filteredParticipants = participants.filter((p) =>
-    p.nama_lengkap?.toLowerCase().includes(search.toLowerCase())
-  );
 
   // ================= DOWNLOAD TEMPLATE =================
   const handleDownloadTemplate = () => {
@@ -359,9 +360,14 @@ const uniqueInsertData = Array.from(uniqueMap.values());
               <th className="px-6 py-4 text-left">No Peserta</th>
               <th className="px-6 py-4 text-left">Password</th>
               <th className="px-6 py-4 text-center">
-  <div className="flex items-center justify-center gap-2">
+  <div className="flex flex-col items-center gap-1">
     
-    {/* 🔥 TOGGLE ALL */}
+    {/* 🔥 TEXT DI ATAS */}
+    <span className="text-xs font-medium">
+      {allActive ? "SEMUA AKTIF" : "SEMUA NON AKTIF"}
+    </span>
+
+    {/* 🔥 TOGGLE DI BAWAH */}
     <button
       onClick={handleToggleAllStatus}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
@@ -375,9 +381,6 @@ const uniqueInsertData = Array.from(uniqueMap.values());
       />
     </button>
 
-    <span className="text-xs">
-      {allActive ? "Semua Aktif" : "Semua Non Aktif"}
-    </span>
   </div>
 </th>
             </tr>
