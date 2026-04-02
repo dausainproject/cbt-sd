@@ -186,7 +186,9 @@ const handleToggleAllStatus = async () => {
     alert("Terjadi error");
   }
 };
-
+const filteredParticipants = participants.filter((p) =>
+  p.nama_lengkap?.toLowerCase().includes(search.toLowerCase())
+);
   // ================= DOWNLOAD TEMPLATE =================
   const handleDownloadTemplate = () => {
     const data = [
