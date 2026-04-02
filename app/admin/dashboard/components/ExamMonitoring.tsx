@@ -22,8 +22,7 @@ type Monitoring = {
 };
 
 export default function ExamMonitoring() {
-  const [kelas, setKelas] = useState<string[]>([]);
-  const [selectedKelas, setSelectedKelas] = useState("");
+  
   const [asesmen, setAsesmen] = useState<Asesmen[]>([]);
   const [selectedAsesmen, setSelectedAsesmen] = useState<number | null>(null);
   const [durasi, setDurasi] = useState(60);
@@ -46,21 +45,11 @@ const [jenisSesi, setJenisSesi] = useState("utama");
   // ===============================
 
   useEffect(() => {
-    loadKelas();
+    
     loadAsesmen();
   }, []);
 
-  async function loadKelas() {
-    const { data } = await supabase
-      .from("data_siswa")
-      .select("kelas");
-
-    if (!data) return;
-
-    const unik = [...new Set(data.map((s) => s.kelas))];
-    setKelas(unik);
-  }
-
+  
   // ===============================
   // LOAD ASESMEN
   // ===============================
@@ -78,12 +67,10 @@ const [jenisSesi, setJenisSesi] = useState("utama");
   // ===============================
 
   async function loadPeserta() {
-    if (!selectedKelas) return;
-
     const { data: siswa } = await supabase
-      .from("data_siswa")
-      .select("no_peserta,nama_lengkap")
-      .eq("kelas", selectedKelas);
+  .from("data_siswa")
+  .select("no_peserta,nama_lengkap")
+  .eq("status", "aktif");
 
     if (!siswa) return;
 
@@ -201,9 +188,9 @@ async function stopUjian() {
     setStatWarning(data.filter((p) => p.pelanggaran > 0).length);
   }
 
-  useEffect(() => {
-    loadPeserta();
-  }, [selectedKelas, selectedAsesmen]);
+ useEffect(() => {
+  loadPeserta();
+}, [selectedAsesmen]);
 
   // ===============================
   // REALTIME UPDATE
@@ -224,7 +211,7 @@ async function stopUjian() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedKelas, selectedAsesmen]);
+  }, [selectedAsesmen]);
 
   // ===============================
   // ===============================
@@ -359,17 +346,7 @@ useEffect(() => {
 <div className="bg-white p-4 rounded shadow">
   <h2 className="font-bold mb-4">Konfigurasi Ujian</h2>
 
-  <label className="text-sm">Pilih Kelas</label>
-  <select
-    className="w-full border p-2 mb-3"
-    onChange={(e) => setSelectedKelas(e.target.value)}
-  >
-    <option value="">-- pilih kelas --</option>
-    {kelas.map((k) => (
-      <option key={k}>{k}</option>
-    ))}
-  </select>
-
+  
   <label className="text-sm">Pilih Asesmen</label>
   <select
     className="w-full border p-2 mb-3"

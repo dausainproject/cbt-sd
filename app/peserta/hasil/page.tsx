@@ -102,15 +102,12 @@ if (!noPeserta) {
         Terima kasih sudah mengerjakan ujian.
       </p>
 
-      <p className="mt-4 text-gray-600">
-        ID Asesmen: {id}
-      </p>
-
+      
       {/* CARD NILAI */}
       <div className="mt-8 bg-white shadow rounded-lg p-6">
 
         <p className="text-gray-500 mb-2">
-          Nilai Anda
+          Nilai Kamu
         </p>
 
         <div className="text-5xl font-bold text-blue-600">
