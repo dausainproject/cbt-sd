@@ -10,6 +10,7 @@ type Participant = {
   no_peserta: string;
   nama_lengkap: string;
   password: string;
+  status: boolean; // 🔥 TAMBAH
 };
 
 export default function ParticipantManagement() {
@@ -156,16 +157,17 @@ const handleGeneratePassword = async () => {
   // ================= DOWNLOAD TEMPLATE =================
   const handleDownloadTemplate = () => {
     const data = [
-      {
-        no: 1,
-        no_peserta: "2025001",
-        nama_lengkap: "Budi Santoso",
-        jk: "L",
-        kelas: "XII IPA 1",
-        password: "123456",
-        sesi: "1",
-      },
-    ];
+  {
+    no: 1,
+    no_peserta: "2025001",
+    nama_lengkap: "Budi Santoso",
+    jk: "L",
+    kelas: "XII IPA 1",
+    password: "123456",
+    sesi: "1",
+    status: "aktif", // 🔥 TAMBAH INI
+  },
+];
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
@@ -221,18 +223,22 @@ const handleGeneratePassword = async () => {
     row.jk &&
     row.kelas &&
     row.password &&
-    row.sesi
+    row.sesi && row.status
 	);
 
       // 🔥 Mapping sesuai struktur DB
       const insertData = cleanData.map((row) => ({
-        no_peserta: String(row.no_peserta).trim(),
-        nama_lengkap: String(row.nama_lengkap).trim(),
-        jk: String(row.jk).trim(),
-        kelas: String(row.kelas).trim(),
-        password: String(row.password).trim(),
-        sesi: String(row.sesi).trim(),
-      }));
+  no_peserta: String(row.no_peserta).trim(),
+  nama_lengkap: String(row.nama_lengkap).trim(),
+  jk: String(row.jk).trim(),
+  kelas: String(row.kelas).trim(),
+  password: String(row.password).trim(),
+  sesi: String(row.sesi).trim(),
+
+  // 🔥 INI YANG PENTING
+  status:
+    String(row.status).toLowerCase().trim() === "aktif",
+}));
 
 // 🔥 Hilangkan duplikat no_peserta dalam 1 file
 const uniqueMap = new Map();
@@ -320,38 +326,84 @@ const uniqueInsertData = Array.from(uniqueMap.values());
               <th className="px-6 py-4 text-left">Nama Peserta</th>
               <th className="px-6 py-4 text-left">No Peserta</th>
               <th className="px-6 py-4 text-left">Password</th>
-              <th className="px-6 py-4 text-center">Aksi</th>
+              <th className="px-6 py-4 text-center">Status</th>
             </tr>
           </thead>
 
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="text-center py-8">
-                  Loading...
-                </td>
-              </tr>
-            ) : (
-              filteredParticipants.map((participant, index) => (
-                <tr key={participant.no_peserta} className="border-t">
-                  <td className="px-6 py-4">{index + 1}</td>
-                  <td className="px-6 py-4 font-medium">
-                    {participant.nama_lengkap}
-                  </td>
-                  <td className="px-6 py-4">
-                    {participant.no_peserta}
-                  </td>
-                  <td className="px-6 py-4">
-                    {participant.password}
-                  </td>
-                  <td className="px-6 py-4 text-center space-x-3">
-                    <Pencil size={16} className="inline text-indigo-600" />
-                    <Trash2 size={16} className="inline text-rose-500" />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
+          <<tbody>
+  {loading ? (
+    <tr>
+      <td colSpan={5} className="text-center py-8">
+        Loading...
+      </td>
+    </tr>
+  ) : (
+    filteredParticipants.map((participant, index) => (
+      <tr key={participant.no_peserta} className="border-t">
+        <td className="px-6 py-4">{index + 1}</td>
+
+        <td className="px-6 py-4 font-medium">
+          {participant.nama_lengkap}
+        </td>
+
+        <td className="px-6 py-4">
+          {participant.no_peserta}
+        </td>
+
+        <td className="px-6 py-4">
+          {participant.password}
+        </td>
+
+        {/* 🔥 STATUS TOGGLE */}
+        <td className="px-6 py-4 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={async () => {
+                const newStatus = !participant.status;
+
+                // update DB
+                await supabase
+                  .from("data_siswa")
+                  .update({ status: newStatus })
+                  .eq("no_peserta", participant.no_peserta);
+
+                // 🔥 update UI TANPA reload
+                setParticipants((prev) =>
+                  prev.map((p) =>
+                    p.no_peserta === participant.no_peserta
+                      ? { ...p, status: newStatus }
+                      : p
+                  )
+                );
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                participant.status ? "bg-green-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                  participant.status
+                    ? "translate-x-6"
+                    : "translate-x-1"
+                }`}
+              />
+            </button>
+
+            <span
+              className={`text-xs font-medium ${
+                participant.status
+                  ? "text-green-600"
+                  : "text-gray-400"
+              }`}
+            >
+              {participant.status ? "Aktif" : "Non Aktif"}
+            </span>
+          </div>
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
         </table>
       </div>
 
