@@ -25,7 +25,7 @@ export default function ParticipantManagement() {
   const [loadingPassword, setLoadingPassword] = useState(false);
   const [kodeSekolah, setKodeSekolah] = useState("");
   const [loadingGen, setLoadingGen] = useState(false);
-  
+  const allActive = participants.length > 0 && participants.every((p) => p.status);
   
   
   useEffect(() => {
@@ -148,7 +148,39 @@ const handleGeneratePassword = async () => {
   }
 };
 
+// ================= TOMBOL TOGLE AKTIF =================
+const handleToggleAllStatus = async () => {
+  const newStatus = !allActive;
 
+  const confirm = window.confirm(
+    newStatus
+      ? "Aktifkan semua peserta?"
+      : "Nonaktifkan semua peserta?"
+  );
+  if (!confirm) return;
+
+  try {
+    const { error } = await supabase
+      .from("data_siswa")
+      .update({ status: newStatus });
+
+    if (error) {
+      alert("Gagal update status");
+      return;
+    }
+
+    // 🔥 update UI langsung
+    setParticipants((prev) =>
+      prev.map((p) => ({
+        ...p,
+        status: newStatus,
+      }))
+    );
+
+  } catch (err) {
+    alert("Terjadi error");
+  }
+};
 
   const filteredParticipants = participants.filter((p) =>
     p.nama_lengkap?.toLowerCase().includes(search.toLowerCase())
@@ -285,7 +317,7 @@ const uniqueInsertData = Array.from(uniqueMap.values());
         </p>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
   <button
     onClick={() => setShowImport(true)}
     className="bg-blue-600 text-white px-4 py-2 rounded"
@@ -326,7 +358,28 @@ const uniqueInsertData = Array.from(uniqueMap.values());
               <th className="px-6 py-4 text-left">Nama Peserta</th>
               <th className="px-6 py-4 text-left">No Peserta</th>
               <th className="px-6 py-4 text-left">Password</th>
-              <th className="px-6 py-4 text-center">Status</th>
+              <th className="px-6 py-4 text-center">
+  <div className="flex items-center justify-center gap-2">
+    
+    {/* 🔥 TOGGLE ALL */}
+    <button
+      onClick={handleToggleAllStatus}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+        allActive ? "bg-green-500" : "bg-gray-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+          allActive ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+
+    <span className="text-xs">
+      {allActive ? "Semua Aktif" : "Semua Non Aktif"}
+    </span>
+  </div>
+</th>
             </tr>
           </thead>
 
