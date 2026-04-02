@@ -160,18 +160,10 @@ const handleToggleAllStatus = async () => {
   if (!confirm) return;
 
   try {
-    for (const p of participants) {
-      const { error } = await supabase
-        .from("data_siswa")
-        .update({ status: newStatus })
-        .eq("no_peserta", p.no_peserta);
-
-      if (error) {
-        console.error(error);
-        alert("Gagal update salah satu data");
-        return;
-      }
-    }
+    const { error } = await supabase
+  .from("data_siswa")
+  .update({ status: newStatus })
+  .neq("no_peserta", ""); // update semua
 
     // 🔥 update UI langsung tanpa fetch ulang
     setParticipants((prev) =>
