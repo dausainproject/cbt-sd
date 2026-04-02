@@ -330,7 +330,7 @@ const uniqueInsertData = Array.from(uniqueMap.values());
             </tr>
           </thead>
 
-          <<tbody>
+          <tbody>
   {loading ? (
     <tr>
       <td colSpan={5} className="text-center py-8">
@@ -361,13 +361,12 @@ const uniqueInsertData = Array.from(uniqueMap.values());
               onClick={async () => {
                 const newStatus = !participant.status;
 
-                // update DB
                 await supabase
                   .from("data_siswa")
                   .update({ status: newStatus })
                   .eq("no_peserta", participant.no_peserta);
 
-                // 🔥 update UI TANPA reload
+                // update UI tanpa reload
                 setParticipants((prev) =>
                   prev.map((p) =>
                     p.no_peserta === participant.no_peserta
