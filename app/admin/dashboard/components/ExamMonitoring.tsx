@@ -70,7 +70,7 @@ const [jenisSesi, setJenisSesi] = useState("utama");
     const { data: siswa } = await supabase
   .from("data_siswa")
   .select("no_peserta,nama_lengkap")
-  .eq("status", "aktif");
+  .eq("status", true);
 
     if (!siswa) return;
 
