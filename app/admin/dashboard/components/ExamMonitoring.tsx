@@ -55,12 +55,17 @@ const [jenisSesi, setJenisSesi] = useState("utama");
   // ===============================
 
   async function loadAsesmen() {
-    const { data } = await supabase
-      .from("data_asesmen")
-      .select("*");
+  const { data } = await supabase
+    .from("data_asesmen")
+    .select("*")
+    .limit(1)
+    .single();
 
-    if (data) setAsesmen(data);
+  if (data) {
+    setAsesmen([data]);
+    setSelectedAsesmen(data.id); // 🔥 AUTO PILIH
   }
+}
 
   // ===============================
   // LOAD PESERTA
@@ -347,18 +352,9 @@ useEffect(() => {
   <h2 className="font-bold mb-4">Konfigurasi Ujian</h2>
 
   
-  <label className="text-sm">Pilih Asesmen</label>
-  <select
-    className="w-full border p-2 mb-3"
-    onChange={(e) => setSelectedAsesmen(Number(e.target.value))}
-  >
-    <option value="">-- pilih asesmen --</option>
-    {asesmen.map((a) => (
-      <option key={a.id} value={a.id}>
-        {a.nama_asesmen}
-      </option>
-    ))}
-  </select>
+  <p className="mb-3 text-sm">
+  Asesmen: <b>{asesmen[0]?.nama_asesmen || "-"}</b>
+</p>
 
   <label className="text-sm">Durasi</label>
   <input
