@@ -63,8 +63,8 @@ localStorage.setItem("no_peserta", siswa.no_peserta);
     // =========================
     // DEBUG (OPTIONAL)
     // =========================
-    console.log("Login berhasil:", data);
-    console.log("no_peserta disimpan:", data.no_peserta);
+    console.log("Login berhasil:", siswa);
+console.log("no_peserta disimpan:", siswa.no_peserta);
 
     // =========================
     // REDIRECT
