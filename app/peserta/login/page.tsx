@@ -25,21 +25,29 @@ export default function LoginPeserta() {
       return;
     }
 
-    // =========================
-    // CEK KE DATABASE
-    // =========================
-    const { data, error } = await supabase
-      .from("data_siswa")
-      .select("*")
-      .eq("no_peserta", noPeserta)
-      .eq("password", password)
-      .single();
+    const { data: siswa } = await supabase
+  .from("data_siswa")
+  .select("*")
+  .eq("no_peserta", noPeserta)
+  .single();
 
-    if (error || !data) {
-      setError("No peserta atau password salah");
-      setLoading(false);
-      return;
-    }
+if (!siswa) {
+  setError("No peserta tidak ditemukan");
+  setLoading(false);
+  return;
+}
+
+if (siswa.password !== password) {
+  setError("Password salah");
+  setLoading(false);
+  return;
+}
+
+if (!siswa.status) {
+  setError("Akun tidak aktif");
+  setLoading(false);
+  return;
+}
 
     // =========================
     // BERSIHKAN DATA LAMA (PENTING)
@@ -49,10 +57,8 @@ export default function LoginPeserta() {
     // =========================
     // SIMPAN DATA PESERTA
     // =========================
-    localStorage.setItem("peserta", JSON.stringify(data));
-
-    // ⬇️ INI YANG TADI KURANG (FIX UTAMA)
-    localStorage.setItem("no_peserta", data.no_peserta);
+   localStorage.setItem("peserta", JSON.stringify(siswa));
+localStorage.setItem("no_peserta", siswa.no_peserta);
 
     // =========================
     // DEBUG (OPTIONAL)
