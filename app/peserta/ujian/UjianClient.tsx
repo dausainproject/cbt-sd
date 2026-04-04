@@ -17,12 +17,20 @@ export default function UjianClient() {
   const params = useSearchParams();
   const id = params.get("id");
   const router = useRouter();
-const sesi = Number(localStorage.getItem("sesi") || 1);
+
+  const [sesi, setSesi] = useState(1); // ✅ state
+
   const [soal, setSoal] = useState<Soal[]>([]);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [jawaban, setJawaban] = useState<{ [key: number]: string }>({});
   const [submitting, setSubmitting] = useState(false);
+
+  // ✅ WAJIB ADA INI
+  useEffect(() => {
+    const s = Number(localStorage.getItem("sesi") || 1);
+    setSesi(s);
+  }, []);
 
   // 🔥 INSERT STATUS SAAT MULAI UJIAN
 useEffect(() => {
