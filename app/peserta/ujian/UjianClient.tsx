@@ -221,7 +221,7 @@ else {
       id_asesmen: Number(id),
       jawaban: jwbRaw,
       point: point,
-      sesi: sesi
+      sesi: sesi,
       ragu: false
     };
   });
