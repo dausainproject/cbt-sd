@@ -46,7 +46,7 @@ useEffect(() => {
   status: "sedang",
   pelanggaran: 0
 });
-}, [id]);
+}, [id, sesi]);
 
   // Load jawaban dari localStorage
   useEffect(() => {
@@ -221,7 +221,7 @@ else {
       id_asesmen: Number(id),
       jawaban: jwbRaw,
       point: point,
-      sesi: 1,
+      sesi: sesi
       ragu: false
     };
   });
