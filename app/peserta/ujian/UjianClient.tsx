@@ -17,17 +17,28 @@ export default function UjianClient() {
   const params = useSearchParams();
   const id = params.get("id");
   const router = useRouter();
-
+const sesi = Number(localStorage.getItem("sesi") || 1);
   const [soal, setSoal] = useState<Soal[]>([]);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [jawaban, setJawaban] = useState<{ [key: number]: string }>({});
   const [submitting, setSubmitting] = useState(false);
 
-  // Load soal
-  useEffect(() => {
-    if (id) loadSoal();
-  }, [id]);
+  // 🔥 INSERT STATUS SAAT MULAI UJIAN
+useEffect(() => {
+  if (!id) return;
+
+  const noPeserta = localStorage.getItem("no_peserta");
+  if (!noPeserta) return;
+
+  supabase.from("laporan_ujian").upsert({
+  no_peserta: noPeserta,
+  id_asesmen: Number(id),
+  sesi: sesi, // 🔥 pakai ini
+  status: "sedang",
+  pelanggaran: 0
+});
+}, [id]);
 
   // Load jawaban dari localStorage
   useEffect(() => {
@@ -236,6 +247,7 @@ else {
       jumlah_salah: jumlahSalah,
       jumlah_kosong: jumlahKosong,
       status: "selesai",
+sesi: sesi, // 🔥 WAJIB
       selesai_pada: new Date().toISOString(),
     },
     { onConflict: "no_peserta,id_asesmen" }

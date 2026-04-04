@@ -195,28 +195,56 @@ async function stopUjian() {
 
  useEffect(() => {
   loadPeserta();
-}, [selectedAsesmen]);
+}, [selectedAsesmen, sesi]);
 
   // ===============================
   // REALTIME UPDATE
   // ===============================
 
   useEffect(() => {
-    const channel = supabase
-      .channel("monitoring")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "laporan_ujian" },
-        () => {
+  const channel = supabase
+    .channel("monitoring")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "laporan_ujian",
+      },
+      (payload) => {
+        const newData = payload.new;
+
+        // 🔥 FILTER SESUAI ASESMEN + SESI
+        if (
+          newData?.id_asesmen === selectedAsesmen &&
+          newData?.sesi === sesi
+        ) {
+          // ⚡ update langsung (tanpa reload)
+          setPeserta((prev) =>
+            prev.map((p) =>
+              p.no_peserta === newData.no_peserta
+                ? {
+                    ...p,
+                    status: newData.status,
+                    pelanggaran: newData.pelanggaran,
+                  }
+                : p
+            )
+          );
+        }
+
+        // 🔥 kalau data baru (INSERT)
+        if (payload.eventType === "INSERT") {
           loadPeserta();
         }
-      )
-      .subscribe();
+      }
+    )
+    .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedAsesmen]);
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [selectedAsesmen, sesi]);
 
   // ===============================
   // ===============================
