@@ -212,7 +212,7 @@ async function stopUjian() {
         table: "laporan_ujian",
       },
       (payload) => {
-        const newData = payload.new;
+        const newData = payload.new as any;
 
         // 🔥 FILTER SESUAI ASESMEN + SESI
         if (
