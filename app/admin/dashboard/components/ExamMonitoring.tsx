@@ -477,16 +477,16 @@ useEffect(() => {
   />
 
   <button
-    onClick={generateToken}
-    disabled={ujianAktif || token}
-    className={`w-full py-2 rounded mb-3 text-white ${
-      ujianAktif || token
-        ? "bg-gray-400 cursor-not-allowed"
-        : "bg-blue-600 hover:bg-blue-700"
-    }`}
-  >
-    RILIS TOKEN
-  </button>
+  onClick={generateToken}
+  disabled={ujianAktif || !!token}
+  className={`w-full py-2 rounded mb-3 text-white ${
+    ujianAktif || !!token
+      ? "bg-gray-400 cursor-not-allowed"
+      : "bg-blue-600 hover:bg-blue-700"
+  }`}
+>
+  RILIS TOKEN
+</button>
 
   <button
     onClick={ujianAktif ? stopUjian : mulaiUjian}
