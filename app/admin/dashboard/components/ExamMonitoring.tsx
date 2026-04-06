@@ -239,43 +239,43 @@ async function stopUjian() {
         const newData = payload.new as any;
 
         if (
-  newData?.id_asesmen === selectedAsesmen &&
-  newData?.sesi === sesi
-) {
-  setPeserta((prev) => {
-    const existing = prev.find(
-      (p) => p.no_peserta === newData.no_peserta
-    );
+          newData?.id_asesmen === selectedAsesmen &&
+          newData?.sesi === sesi
+        ) {
+          setPeserta((prev) => {
+            let updated;
 
-    // 🔥 kalau SUDAH ADA → update
-    if (existing) {
-      return prev.map((p) =>
-        p.no_peserta === newData.no_peserta
-          ? {
-              ...p,
-              status: newData.status,
-              pelanggaran: newData.pelanggaran,
+            const existing = prev.find(
+              (p) => p.no_peserta === newData.no_peserta
+            );
+
+            if (existing) {
+              updated = prev.map((p) =>
+                p.no_peserta === newData.no_peserta
+                  ? {
+                      ...p,
+                      status: newData.status,
+                      pelanggaran: newData.pelanggaran,
+                    }
+                  : p
+              );
+            } else {
+              updated = [
+                ...prev,
+                {
+                  no_peserta: newData.no_peserta,
+                  nama_lengkap: newData.nama_lengkap || "-",
+                  status: newData.status,
+                  pelanggaran: newData.pelanggaran,
+                },
+              ];
             }
-          : p
-      );
-    }
 
-    // 🔥 kalau BELUM ADA → tambahin (INI YANG PENTING)
-    return [
-      ...prev,
-      {
-        no_peserta: newData.no_peserta,
-        nama_lengkap: newData.nama_lengkap || "-", // fallback
-        status: newData.status,
-        pelanggaran: newData.pelanggaran,
-      },
-    ];
-  });
-}
+            // 🔥 WAJIB: update statistik juga
+            hitungStat(updated);
 
-        // 🔥 kalau data baru (INSERT)
-        if (payload.eventType === "INSERT") {
-          loadPeserta();
+            return updated;
+          });
         }
       }
     )
