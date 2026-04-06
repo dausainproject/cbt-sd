@@ -50,48 +50,76 @@ useEffect(() => {
 
   // Load jawaban dari localStorage
   useEffect(() => {
-    const data = localStorage.getItem("jawaban_ujian");
-    if (data) setJawaban(JSON.parse(data));
-  }, []);
+  const data = localStorage.getItem("jawaban_ujian");
+  if (data) setJawaban(JSON.parse(data));
+}, []);
 
-  async function loadSoal() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("bank_soal")
-      .select("*")
-      .eq("id_asesmen", id)
-      .order("id");
-
-    if (error) {
-      console.error(error);
-      setLoading(false);
-      return;
-    }
-
-    if (data) {
-      const soalFix = data.map((s: any) => {
-        let pilihan: string[] = [];
-        if (Array.isArray(s.pilihan)) pilihan = s.pilihan;
-        else if (typeof s.pilihan === "object" && s.pilihan !== null)
-          pilihan = Object.values(s.pilihan).map((v: any) =>
-            typeof v === "string" ? v : v.text || ""
-          );
-        else if (typeof s.pilihan === "string") {
-          try {
-            const parsed = JSON.parse(s.pilihan);
-            if (Array.isArray(parsed)) pilihan = parsed;
-            else if (typeof parsed === "object") pilihan = Object.values(parsed) as string[];
-          } catch {
-            pilihan = [];
-          }
-        }
-        return { ...s, pilihan };
-      });
-      setSoal(soalFix);
-    }
-
-    setLoading(false);
+// 🔥 WAJIB INI
+useEffect(() => {
+  if (id) {
+    loadSoal();
   }
+}, [id]);
+
+  // 🔥 LOAD SOAL OTOMATIS
+useEffect(() => {
+  if (id) {
+    loadSoal();
+  }
+}, [id]);
+
+async function loadSoal() {
+  setLoading(true);
+
+  const idNumber = Number(id); // 🔥 fix penting
+
+  const { data, error } = await supabase
+    .from("bank_soal")
+    .select("*")
+    .eq("id_asesmen", idNumber)
+    .order("id");
+
+  // 🔥 DEBUG
+  console.log("ID:", idNumber);
+  console.log("HASIL:", data);
+  console.log("ERROR:", error);
+
+  if (error) {
+    console.error(error);
+    setLoading(false);
+    return;
+  }
+
+  if (data) {
+    const soalFix = data.map((s: any) => {
+      let pilihan: string[] = [];
+
+      if (Array.isArray(s.pilihan)) pilihan = s.pilihan;
+
+      else if (typeof s.pilihan === "object" && s.pilihan !== null)
+        pilihan = Object.values(s.pilihan).map((v: any) =>
+          typeof v === "string" ? v : v.text || ""
+        );
+
+      else if (typeof s.pilihan === "string") {
+        try {
+          const parsed = JSON.parse(s.pilihan);
+          if (Array.isArray(parsed)) pilihan = parsed;
+          else if (typeof parsed === "object")
+            pilihan = Object.values(parsed) as string[];
+        } catch {
+          pilihan = [];
+        }
+      }
+
+      return { ...s, pilihan };
+    });
+
+    setSoal(soalFix);
+  }
+
+  setLoading(false);
+}
 
   function simpanJawaban(idSoal: number, value: string) {
     const baru = { ...jawaban, [idSoal]: value };
