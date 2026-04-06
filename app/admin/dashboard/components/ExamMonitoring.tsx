@@ -433,79 +433,78 @@ useEffect(() => {
 <div className="bg-white p-4 rounded shadow">
   <h2 className="font-bold mb-4">Konfigurasi Ujian</h2>
 
-  
- <p className="mb-3 text-sm">
-  Asesmen: <b>{asesmen[0]?.nama_asesmen || "-"}</b>
-</p>
+  <p className="mb-3 text-sm">
+    Asesmen: <b>{asesmen[0]?.nama_asesmen || "-"}</b>
+  </p>
 
-<label className="text-sm">Durasi</label>
-<input
-  type="number"
-  disabled={ujianAktif} // 🔒 LOCK
-  className="w-full border p-2 mb-3"
-  value={durasi}
-  onChange={(e) => setDurasi(Number(e.target.value))}
-/>
+  <label className="text-sm">Durasi</label>
+  <input
+    type="number"
+    disabled={ujianAktif}
+    className="w-full border p-2 mb-3"
+    value={durasi}
+    onChange={(e) => setDurasi(Number(e.target.value))}
+  />
 
-<label className="text-sm">Sesi Ujian</label>
-<select
-  disabled={ujianAktif} // 🔒 LOCK
-  className="w-full border p-2 mb-3"
-  value={sesi}
-  onChange={(e) => setSesi(Number(e.target.value))}
->
-  <option value={1}>Sesi 1 (Utama)</option>
-  <option value={2}>Sesi 2 (Susulan)</option>
-  <option value={3}>Sesi 3</option>
-</select>
+  <label className="text-sm">Sesi Ujian</label>
+  <select
+    disabled={ujianAktif}
+    className="w-full border p-2 mb-3"
+    value={sesi}
+    onChange={(e) => setSesi(Number(e.target.value))}
+  >
+    <option value={1}>Sesi 1 (Utama)</option>
+    <option value={2}>Sesi 2 (Susulan)</option>
+    <option value={3}>Sesi 3</option>
+  </select>
 
-<label className="text-sm">Jenis Sesi</label>
-<select
-  disabled={ujianAktif} // 🔒 LOCK
-  className="w-full border p-2 mb-3"
-  value={jenisSesi}
-  onChange={(e) => setJenisSesi(e.target.value)}
->
-  <option value="utama">Ujian Utama</option>
-  <option value="susulan">Ujian Susulan</option>
-</select>
+  <label className="text-sm">Jenis Sesi</label>
+  <select
+    disabled={ujianAktif}
+    className="w-full border p-2 mb-3"
+    value={jenisSesi}
+    onChange={(e) => setJenisSesi(e.target.value)}
+  >
+    <option value="utama">Ujian Utama</option>
+    <option value="susulan">Ujian Susulan</option>
+  </select>
 
-<input
-  value={token}
-  readOnly
-  className="border p-2 w-full mb-3"
-  placeholder="TOKEN"
-/>
+  <input
+    value={token}
+    readOnly
+    className="border p-2 w-full mb-3"
+    placeholder="TOKEN"
+  />
 
-<button
-  onClick={generateToken}
-  disabled={ujianAktif || token} // 🔥 LOCK + cegah double token
-  className={`w-full py-2 rounded mb-3 text-white ${
-    ujianAktif || token
-      ? "bg-gray-400 cursor-not-allowed"
-      : "bg-blue-600 hover:bg-blue-700"
-  }`}
->
-  RILIS TOKEN
-</button>
+  <button
+    onClick={generateToken}
+    disabled={ujianAktif || token}
+    className={`w-full py-2 rounded mb-3 text-white ${
+      ujianAktif || token
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-blue-600 hover:bg-blue-700"
+    }`}
+  >
+    RILIS TOKEN
+  </button>
 
-<button
-  onClick={ujianAktif ? stopUjian : mulaiUjian}
-  className={`w-full py-2 rounded text-white ${
-    ujianAktif
-      ? "bg-red-600 hover:bg-red-700"
-      : "bg-green-600 hover:bg-green-700"
-  }`}
->
-  {ujianAktif ? "STOP UJIAN" : "MULAI UJIAN"}
-</button>
+  <button
+    onClick={ujianAktif ? stopUjian : mulaiUjian}
+    className={`w-full py-2 rounded text-white ${
+      ujianAktif
+        ? "bg-red-600 hover:bg-red-700"
+        : "bg-green-600 hover:bg-green-700"
+    }`}
+  >
+    {ujianAktif ? "STOP UJIAN" : "MULAI UJIAN"}
+  </button>
+</div> {/* ✅ FIX: div ditutup di sini */}
 
-        {/* STATISTIK */}
+{/* STATISTIK */}
 <div className="bg-sky-500 text-white p-4 rounded shadow">
   <h2 className="font-bold mb-3">Statistik</h2>
 
   <div className="grid grid-cols-2 gap-2 text-sm">
-
     <div className="bg-white/20 p-2 rounded">
       Login : {statLogin}
     </div>
@@ -521,7 +520,6 @@ useEffect(() => {
     <div className="bg-white/20 p-2 rounded">
       Warning : {statWarning}
     </div>
-
   </div>
 </div>
 		
