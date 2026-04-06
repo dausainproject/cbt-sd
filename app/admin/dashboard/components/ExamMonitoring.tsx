@@ -174,13 +174,19 @@ async function stopUjian() {
     return;
   }
 
-  // reset timer di dashboard
-  setSisaWaktu(0);
+  // 🔥 MATIKAN TOKEN DI DATABASE
+  await supabase
+    .from("token_ujian")
+    .update({ status: false })
+    .eq("id_asesmen", selectedAsesmen);
 
-  alert("Ujian dihentikan");
+  // 🔥 RESET STATE
+  setToken("");          // kosongin input token
+  setSisaWaktu(0);
   setUjianAktif(false);
 
-  // refresh peserta
+  alert("Ujian dihentikan");
+
   loadPeserta();
 }
 
@@ -480,7 +486,7 @@ useEffect(() => {
 
   <button
   onClick={generateToken}
-  disabled={ujianAktif || !!token}
+  disabled={ujianAktif}
   className={`w-full py-2 rounded mb-3 text-white ${
     ujianAktif || !!token
       ? "bg-gray-400 cursor-not-allowed"
