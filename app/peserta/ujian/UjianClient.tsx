@@ -39,13 +39,18 @@ useEffect(() => {
   const noPeserta = localStorage.getItem("no_peserta");
   if (!noPeserta) return;
 
-  supabase.from("laporan_ujian").upsert({
-  no_peserta: noPeserta,
-  id_asesmen: Number(id),
-  sesi: sesi, // 🔥 pakai ini
-  status: "sedang",
-  pelanggaran: 0
-});
+  supabase.from("laporan_ujian").upsert(
+  {
+    no_peserta: noPeserta,
+    id_asesmen: Number(id),
+    sesi: sesi,
+    status: "sedang",
+    pelanggaran: 0
+  },
+  {
+    onConflict: "no_peserta,id_asesmen,sesi" // 🔥 WAJIB
+  }
+);
 }, [id, sesi]);
 
   // Load jawaban dari localStorage

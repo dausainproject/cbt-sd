@@ -44,6 +44,30 @@ const [jenisSesi, setJenisSesi] = useState("utama");
   // LOAD KELAS
   // ===============================
 
+
+useEffect(() => {
+  if (!selectedAsesmen) return;
+
+  const loadStatus = async () => {
+    const { data } = await supabase
+      .from("ujian_aktif")
+      .select("status")
+      .eq("id_asesmen", selectedAsesmen)
+      .eq("sesi", sesi)
+      .maybeSingle();
+
+    if (data?.status === "berjalan") {
+      setUjianAktif(true);
+    } else {
+      setUjianAktif(false);
+    }
+  };
+
+  loadStatus();
+}, [selectedAsesmen, sesi]);
+
+
+
   useEffect(() => {
     
     loadAsesmen();
@@ -214,24 +238,40 @@ async function stopUjian() {
       (payload) => {
         const newData = payload.new as any;
 
-        // 🔥 FILTER SESUAI ASESMEN + SESI
         if (
-          newData?.id_asesmen === selectedAsesmen &&
-          newData?.sesi === sesi
-        ) {
-          // ⚡ update langsung (tanpa reload)
-          setPeserta((prev) =>
-            prev.map((p) =>
-              p.no_peserta === newData.no_peserta
-                ? {
-                    ...p,
-                    status: newData.status,
-                    pelanggaran: newData.pelanggaran,
-                  }
-                : p
-            )
-          );
-        }
+  newData?.id_asesmen === selectedAsesmen &&
+  newData?.sesi === sesi
+) {
+  setPeserta((prev) => {
+    const existing = prev.find(
+      (p) => p.no_peserta === newData.no_peserta
+    );
+
+    // 🔥 kalau SUDAH ADA → update
+    if (existing) {
+      return prev.map((p) =>
+        p.no_peserta === newData.no_peserta
+          ? {
+              ...p,
+              status: newData.status,
+              pelanggaran: newData.pelanggaran,
+            }
+          : p
+      );
+    }
+
+    // 🔥 kalau BELUM ADA → tambahin (INI YANG PENTING)
+    return [
+      ...prev,
+      {
+        no_peserta: newData.no_peserta,
+        nama_lengkap: newData.nama_lengkap || "-", // fallback
+        status: newData.status,
+        pelanggaran: newData.pelanggaran,
+      },
+    ];
+  });
+}
 
         // 🔥 kalau data baru (INSERT)
         if (payload.eventType === "INSERT") {
