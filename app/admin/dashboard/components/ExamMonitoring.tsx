@@ -49,7 +49,9 @@ useEffect(() => {
   loadKonfigurasi();
 }, [selectedAsesmen, sesi]);
 
-  
+  useEffect(() => {
+  loadAsesmen();
+}, []);
   // ===============================
   // LOAD ASESMEN
   // ===============================
