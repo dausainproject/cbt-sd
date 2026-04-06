@@ -25,6 +25,7 @@ export default function UjianClient() {
   const [loading, setLoading] = useState(true);
   const [jawaban, setJawaban] = useState<{ [key: number]: string }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [statusInserted, setStatusInserted] = useState(false);
 
   // ✅ WAJIB ADA INI
   useEffect(() => {
@@ -34,24 +35,43 @@ export default function UjianClient() {
 
   // 🔥 INSERT STATUS SAAT MULAI UJIAN
 useEffect(() => {
-  if (!id) return;
+  const insertStatus = async () => {
+    if (!id || !sesi || statusInserted) return;
 
-  const noPeserta = localStorage.getItem("no_peserta");
-  if (!noPeserta) return;
+    const noPeserta = localStorage.getItem("no_peserta");
+    if (!noPeserta) {
+      console.log("NO PESERTA BELUM ADA");
+      return;
+    }
 
-  supabase.from("laporan_ujian").upsert(
-  {
-    no_peserta: noPeserta,
-    id_asesmen: Number(id),
-    sesi: sesi,
-    status: "sedang",
-    pelanggaran: 0
-  },
-  {
-    onConflict: "no_peserta,id_asesmen,sesi" // 🔥 WAJIB
-  }
-);
-}, [id, sesi]);
+    console.log("COBA INSERT STATUS:", {
+      id,
+      sesi,
+      noPeserta
+    });
+
+    const { error } = await supabase
+  .from("laporan_ujian")
+  .upsert(
+    {
+      no_peserta: noPeserta,
+      id_asesmen: Number(id),
+      sesi: sesi,
+      status: "sedang",
+      pelanggaran: 0
+    },
+    {
+      onConflict: "no_peserta,id_asesmen,sesi"
+    }
+  );
+
+if (error) {
+  console.log("❌ ERROR DETAIL:", error);
+}
+  };
+
+  insertStatus();
+}, [id, sesi, statusInserted]);
 
   // Load jawaban dari localStorage
   useEffect(() => {
