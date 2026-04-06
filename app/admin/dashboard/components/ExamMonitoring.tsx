@@ -46,32 +46,8 @@ const [jenisSesi, setJenisSesi] = useState("utama");
 
 
 useEffect(() => {
-  if (!selectedAsesmen) return;
-
-  const loadStatus = async () => {
-    const { data } = await supabase
-      .from("ujian_aktif")
-      .select("status")
-      .eq("id_asesmen", selectedAsesmen)
-      .eq("sesi", sesi)
-      .maybeSingle();
-
-    if (data?.status === "berjalan") {
-      setUjianAktif(true);
-    } else {
-      setUjianAktif(false);
-    }
-  };
-
-  loadStatus();
+  loadKonfigurasi();
 }, [selectedAsesmen, sesi]);
-
-
-
-  useEffect(() => {
-    
-    loadAsesmen();
-  }, []);
 
   
   // ===============================
@@ -205,6 +181,44 @@ async function stopUjian() {
   // refresh peserta
   loadPeserta();
 }
+
+async function loadKonfigurasi() {
+  if (!selectedAsesmen) return;
+
+  const { data } = await supabase
+    .from("ujian_aktif")
+    .select("*")
+    .eq("id_asesmen", selectedAsesmen)
+    .eq("sesi", sesi)
+    .maybeSingle();
+
+  if (data) {
+    setDurasi(data.durasi_menit);
+    setJenisSesi(data.jenis_sesi || "utama");
+    setUjianAktif(data.status === "berjalan");
+  }
+}
+
+//kunci token
+async function loadToken() {
+  if (!selectedAsesmen) return;
+
+  const { data } = await supabase
+    .from("token_ujian")
+    .select("token")
+    .eq("id_asesmen", selectedAsesmen)
+    .eq("status", true)
+    .maybeSingle();
+
+  if (data) {
+    setToken(data.token);
+  }
+}
+
+useEffect(() => {
+  loadToken();
+}, [selectedAsesmen]);
+
 
   // ===============================
   // STATISTIK
@@ -420,21 +434,22 @@ useEffect(() => {
   <h2 className="font-bold mb-4">Konfigurasi Ujian</h2>
 
   
-  <p className="mb-3 text-sm">
+ <p className="mb-3 text-sm">
   Asesmen: <b>{asesmen[0]?.nama_asesmen || "-"}</b>
 </p>
 
-  <label className="text-sm">Durasi</label>
-  <input
-    type="number"
-    className="w-full border p-2 mb-3"
-    value={durasi}
-    onChange={(e) => setDurasi(Number(e.target.value))}
-  />
-
+<label className="text-sm">Durasi</label>
+<input
+  type="number"
+  disabled={ujianAktif} // 🔒 LOCK
+  className="w-full border p-2 mb-3"
+  value={durasi}
+  onChange={(e) => setDurasi(Number(e.target.value))}
+/>
 
 <label className="text-sm">Sesi Ujian</label>
 <select
+  disabled={ujianAktif} // 🔒 LOCK
   className="w-full border p-2 mb-3"
   value={sesi}
   onChange={(e) => setSesi(Number(e.target.value))}
@@ -446,6 +461,7 @@ useEffect(() => {
 
 <label className="text-sm">Jenis Sesi</label>
 <select
+  disabled={ujianAktif} // 🔒 LOCK
   className="w-full border p-2 mb-3"
   value={jenisSesi}
   onChange={(e) => setJenisSesi(e.target.value)}
@@ -454,19 +470,18 @@ useEffect(() => {
   <option value="susulan">Ujian Susulan</option>
 </select>
 
+<input
+  value={token}
+  readOnly
+  className="border p-2 w-full mb-3"
+  placeholder="TOKEN"
+/>
 
-  <input
-    value={token}
-    readOnly
-    className="border p-2 w-full mb-3"
-    placeholder="TOKEN"
-  />
-
-  <button
+<button
   onClick={generateToken}
-  disabled={ujianAktif}
+  disabled={ujianAktif || token} // 🔥 LOCK + cegah double token
   className={`w-full py-2 rounded mb-3 text-white ${
-    ujianAktif
+    ujianAktif || token
       ? "bg-gray-400 cursor-not-allowed"
       : "bg-blue-600 hover:bg-blue-700"
   }`}
@@ -474,7 +489,7 @@ useEffect(() => {
   RILIS TOKEN
 </button>
 
-  <button
+<button
   onClick={ujianAktif ? stopUjian : mulaiUjian}
   className={`w-full py-2 rounded text-white ${
     ujianAktif
@@ -484,24 +499,6 @@ useEffect(() => {
 >
   {ujianAktif ? "STOP UJIAN" : "MULAI UJIAN"}
 </button>
-</div>
-
-{/* COUNTDOWN UJIAN */}
-<div className="bg-sky-600 text-white p-4 rounded shadow text-center">
-  <p className="text-sm opacity-90">SISA WAKTU UJIAN</p>
-
-  <p className="text-3xl font-bold tracking-widest mt-1">
-    {Math.floor(sisaWaktu / 3600)
-      .toString()
-      .padStart(2, "0")}
-    :
-    {Math.floor((sisaWaktu % 3600) / 60)
-      .toString()
-      .padStart(2, "0")}
-    :
-    {(sisaWaktu % 60).toString().padStart(2, "0")}
-  </p>
-</div>
 
         {/* STATISTIK */}
 <div className="bg-sky-500 text-white p-4 rounded shadow">
