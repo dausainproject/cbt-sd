@@ -266,6 +266,17 @@ async function loadSoal() {
   return [String(val).toLowerCase().trim()];
 }
 
+function formatWaktu(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const jam = Math.floor(total / 3600);
+  const menit = Math.floor((total % 3600) / 60);
+  const detik = total % 60;
+
+  return `${jam.toString().padStart(2, "0")}:${menit
+    .toString()
+    .padStart(2, "0")}:${detik.toString().padStart(2, "0")}`;
+}
+  
 async function handleAutoSubmit() {
   if (submitting) return;
 
@@ -284,19 +295,7 @@ async function handleAutoSubmit() {
     return;
   }
 
-// FORMAT TIMER (BIAR CAKEP)
-    function formatWaktu(ms: number) {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const jam = Math.floor(total / 3600);
-  const menit = Math.floor((total % 3600) / 60);
-  const detik = total % 60;
-
-  return `${jam.toString().padStart(2, "0")}:${menit
-    .toString()
-    .padStart(2, "0")}:${detik.toString().padStart(2, "0")}`;
-}
-
-    
+   
   // ✅ 1. AMBIL SOAL
   const { data: soalDB, error: errSoal } = await supabase
     .from("bank_soal")
