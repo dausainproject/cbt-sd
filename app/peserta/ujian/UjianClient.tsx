@@ -72,16 +72,6 @@ export default function UjianClient() {
   };
 
   fetchTimer();
-}, [id]);
-
-    const { data: serverTime } = await supabase.rpc("now_time");
-
-    setEndTime(selesai);
-  };
-
-  fetchTimer();
-}, [id]);
-
   // auto kirim pas timer habis
   useEffect(() => {
   if (!endTime) return;
