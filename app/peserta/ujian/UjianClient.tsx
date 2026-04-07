@@ -55,8 +55,23 @@ export default function UjianClient() {
       return;
     }
 
+    // 🔥 AMBIL WAKTU SERVER (BIAR SAMA SEMUA DEVICE)
+    const { data: serverTime } = await supabase.rpc("now_time");
+
     const mulai = new Date(data.waktu_mulai).getTime();
+    const nowServer = new Date(serverTime).getTime();
+
     const selesai = mulai + data.durasi_menit * 60 * 1000;
+
+    const sisa = selesai - nowServer;
+
+    setEndTime(nowServer + sisa);
+  };
+
+  fetchTimer();
+}, [id]);
+
+    const { data: serverTime } = await supabase.rpc("now_time");
 
     setEndTime(selesai);
   };
