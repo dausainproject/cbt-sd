@@ -405,19 +405,36 @@ useEffect(() => {
     }
 
     const mulai = new Date(data.waktu_mulai).getTime();
-    const selesai = mulai + data.durasi_menit * 60 * 1000;
+const selesai = mulai + data.durasi_menit * 60 * 1000;
 
-    interval = setInterval(() => {
-      const sekarang = Date.now();
-      const sisa = Math.floor((selesai - sekarang) / 1000);
+// 🔥 HARD CHECK
+if (Date.now() >= selesai) {
+  setSisaWaktu(0);
 
-      if (sisa <= 0) {
-        setSisaWaktu(0);
-        clearInterval(interval);
-      } else {
-        setSisaWaktu(sisa);
-      }
-    }, 1000);
+  if (ujianAktif) {
+    stopUjian();
+  }
+
+  return;
+}
+
+interval = setInterval(() => {
+  const sekarang = Date.now();
+  const sisa = Math.floor((selesai - sekarang) / 1000);
+
+  if (sisa <= 0) {
+    setSisaWaktu(0);
+    clearInterval(interval);
+
+    setUjianAktif((prev) => {
+      if (prev) stopUjian();
+      return false;
+    });
+
+  } else {
+    setSisaWaktu(sisa);
+  }
+}, 1000);
   };
 
   ambilWaktu();
