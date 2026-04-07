@@ -28,6 +28,9 @@ export default function UjianClient() {
   const [statusInserted, setStatusInserted] = useState(false);
   const [sisaWaktu, setSisaWaktu] = useState(0);
   const [endTime, setEndTime] = useState(0);
+  const [namaPeserta, setNamaPeserta] = useState("");
+  const [namaAsesmen, setNamaAsesmen] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // ✅ WAJIB ADA INI
   useEffect(() => {
@@ -79,6 +82,49 @@ export default function UjianClient() {
 
   return () => clearInterval(interval);
 }, [endTime]);
+
+  // AMBIL DATA PESERTA + ASESMEN
+useEffect(() => {
+  const fetchHeader = async () => {
+    const noPeserta = localStorage.getItem("no_peserta");
+
+    if (noPeserta) {
+      const { data: siswa } = await supabase
+        .from("data_siswa")
+        .select("nama_lengkap")
+        .eq("no_peserta", noPeserta)
+        .single();
+
+      if (siswa) setNamaPeserta(siswa.nama_lengkap);
+    }
+
+    if (id) {
+      const { data: asesmen } = await supabase
+        .from("data_asesmen")
+        .select("nama_asesmen")
+        .eq("id", id)
+        .single();
+
+      if (asesmen) setNamaAsesmen(asesmen.nama_asesmen);
+    }
+  };
+
+  fetchHeader();
+}, [id]);
+
+// DETEKSI FULLSCREEN
+  useEffect(() => {
+  const handleFullscreenChange = () => {
+    setIsFullscreen(!!document.fullscreenElement);
+  };
+
+  document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+  return () => {
+    document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  };
+}, []);
+
 
   
   // 🔥 INSERT STATUS SAAT MULAI UJIAN
@@ -238,7 +284,17 @@ async function handleAutoSubmit() {
     return;
   }
 
+// FORMAT TIMER (BIAR CAKEP)
+    function formatWaktu(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const jam = Math.floor(total / 3600);
+  const menit = Math.floor((total % 3600) / 60);
+  const detik = total % 60;
 
+  return `${jam.toString().padStart(2, "0")}:${menit
+    .toString()
+    .padStart(2, "0")}:${detik.toString().padStart(2, "0")}`;
+}
 
     
   // ✅ 1. AMBIL SOAL
@@ -383,8 +439,45 @@ sesi: sesi, // 🔥 WAJIB
   const s = soal[current];
   if (!s) return <div className="p-10 text-center">Soal tidak ditemukan</div>;
 
-  return (
+ return (
+  <>
+    {/* 🔥 HEADER */}
+    <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-md border-b px-4 py-3 flex items-center justify-between">
+      
+      {/* Kiri */}
+      <div>
+        <p className="font-bold text-sm md:text-base">
+          {namaPeserta || "Peserta"}
+        </p>
+        <p className="text-xs md:text-sm text-gray-500">
+          {namaAsesmen || "Ujian"}
+        </p>
+      </div>
+
+      {/* Tengah (Timer) */}
+      <div className="text-center">
+        <p className="text-xs text-gray-500">Sisa Waktu</p>
+        <p className="text-xl md:text-2xl font-bold text-red-600 tracking-widest">
+          {formatWaktu(sisaWaktu)}
+        </p>
+      </div>
+
+      {/* Kanan */}
+      <div className="text-right">
+        <p className="text-xs text-gray-500">Mode</p>
+        <p
+          className={`font-bold text-sm ${
+            isFullscreen ? "text-green-600" : "text-red-600"
+          }`}
+        >
+          {isFullscreen ? "Fullscreen Aktif" : "Tidak Fullscreen"}
+        </p>
+      </div>
+    </div>
+
+    {/* 🔥 KONTEN UTAMA */}
     <div className="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+      
       {/* Sidebar nomor soal */}
       <div className="hidden md:block border rounded-lg p-4 bg-white shadow">
         <h2 className="font-bold mb-4 text-center">Nomor Soal</h2>
@@ -394,7 +487,9 @@ sesi: sesi, // 🔥 WAJIB
               key={i}
               onClick={() => setCurrent(i)}
               className={`p-2 text-sm rounded transition ${
-                i === current ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"
+                i === current
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 hover:bg-gray-300"
               }`}
             >
               {i + 1}
@@ -410,7 +505,11 @@ sesi: sesi, // 🔥 WAJIB
             Soal {current + 1} dari {soal.length}
           </h1>
 
-          <SoalCard soal={s} value={jawaban[s.id] || ""} onChange={(v) => simpanJawaban(s.id, v)} />
+          <SoalCard
+            soal={s}
+            value={jawaban[s.id] || ""}
+            onChange={(v) => simpanJawaban(s.id, v)}
+          />
 
           <div className="flex justify-between mt-10">
             <button
@@ -423,10 +522,12 @@ sesi: sesi, // 🔥 WAJIB
 
             {current === soal.length - 1 ? (
               <button
-  onClick={() => submitUjian(false)}
+                onClick={() => submitUjian(false)}
                 disabled={submitting}
                 className={`px-6 py-2 rounded text-white ${
-                  submitting ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                  submitting
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700"
                 }`}
               >
                 {submitting ? "Mengirim..." : "Submit Ujian"}
@@ -450,7 +551,11 @@ sesi: sesi, // 🔥 WAJIB
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
-                className={`p-2 text-sm rounded ${i === current ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+                className={`p-2 text-sm rounded ${
+                  i === current
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200"
+                }`}
               >
                 {i + 1}
               </button>
@@ -459,5 +564,6 @@ sesi: sesi, // 🔥 WAJIB
         </div>
       </div>
     </div>
-  );
+  </>
+);
 }
