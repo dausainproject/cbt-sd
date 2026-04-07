@@ -12,65 +12,90 @@ export default function LoginPeserta() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async () => {
-    setLoading(true);
-    setError("");
+ const handleLogin = async () => {
+  setLoading(true);
+  setError("");
 
-    // =========================
-    // VALIDASI INPUT
-    // =========================
-    if (!noPeserta || !password) {
-      setError("No peserta dan password wajib diisi");
-      setLoading(false);
-      return;
-    }
+  if (!noPeserta || !password) {
+    setError("No peserta dan password wajib diisi");
+    setLoading(false);
+    return;
+  }
 
-    const { data: siswa } = await supabase
-  .from("data_siswa")
-  .select("*")
-  .eq("no_peserta", noPeserta)
-  .single();
+  const { data: siswa } = await supabase
+    .from("data_siswa")
+    .select("*")
+    .eq("no_peserta", noPeserta)
+    .single();
 
-if (!siswa) {
-  setError("No peserta tidak ditemukan");
-  setLoading(false);
-  return;
-}
+  if (!siswa) {
+    setError("No peserta tidak ditemukan");
+    setLoading(false);
+    return;
+  }
 
-if (siswa.password !== password) {
-  setError("Password salah");
-  setLoading(false);
-  return;
-}
+  if (siswa.password !== password) {
+    setError("Password salah");
+    setLoading(false);
+    return;
+  }
 
-if (!siswa.status) {
-  setError("Akun tidak aktif");
-  setLoading(false);
-  return;
-}
+  if (!siswa.status) {
+    setError("Akun tidak aktif");
+    setLoading(false);
+    return;
+  }
 
-    // =========================
-    // BERSIHKAN DATA LAMA (PENTING)
-    // =========================
+  // =========================
+  // 🔥 CEK STATUS UJIAN
+  // =========================
+  const { data: laporan } = await supabase
+    .from("laporan_ujian")
+    .select("*")
+    .eq("no_peserta", siswa.no_peserta)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // =========================
+  // 🔥 LOGIC RESUME
+  // =========================
+  if (laporan && laporan.status === "selesai") {
+    setError("Anda sudah menyelesaikan ujian");
+    setLoading(false);
+    return;
+  }
+
+  // =========================
+  // 🔥 SIMPAN SESSION
+  // =========================
+  localStorage.setItem("peserta", JSON.stringify(siswa));
+  localStorage.setItem("no_peserta", siswa.no_peserta);
+
+  // =========================
+  // 🔥 JANGAN HAPUS JAWABAN kalau sedang ujian
+  // =========================
+  if (!laporan || laporan.status !== "sedang") {
     localStorage.removeItem("jawaban_ujian");
+  }
 
-    // =========================
-    // SIMPAN DATA PESERTA
-    // =========================
-   localStorage.setItem("peserta", JSON.stringify(siswa));
-localStorage.setItem("no_peserta", siswa.no_peserta);
+  // =========================
+  // 🔥 UPDATE STATUS JADI SEDANG
+  // =========================
+  await supabase
+    .from("laporan_ujian")
+    .upsert({
+      no_peserta: siswa.no_peserta,
+      id_asesmen: laporan?.id_asesmen || 1, // fallback
+      sesi: laporan?.sesi || 1,
+      status: "sedang",
+      pelanggaran: laporan?.pelanggaran || 0,
+    });
 
-    // =========================
-    // DEBUG (OPTIONAL)
-    // =========================
-    console.log("Login berhasil:", siswa);
-console.log("no_peserta disimpan:", siswa.no_peserta);
+  console.log("Login/resume:", siswa.no_peserta);
 
-    // =========================
-    // REDIRECT
-    // =========================
-    router.push("/peserta/dashboard");
-  };
+  router.push("/peserta/dashboard");
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-blue-50 p-4">
