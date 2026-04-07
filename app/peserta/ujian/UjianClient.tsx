@@ -38,8 +38,7 @@ export default function UjianClient() {
     setSesi(s);
   }, []);
 
-// killer timer
-  useEffect(() => {
+useEffect(() => {
   const fetchTimer = async () => {
     if (!id) return;
 
@@ -55,25 +54,23 @@ export default function UjianClient() {
       return;
     }
 
-    // ✅ ambil waktu server
     const { data: serverTime } = await supabase.rpc("now_time");
-
     if (!serverTime) return;
 
     const mulai = new Date(data.waktu_mulai).getTime();
     const nowServer = new Date(serverTime).getTime();
-
     const selesai = mulai + data.durasi_menit * 60 * 1000;
 
-    // 🔥 FIX: pakai selisih biar semua device sinkron
     const sisa = selesai - nowServer;
 
     setEndTime(Date.now() + sisa);
   };
 
   fetchTimer();
-  // auto kirim pas timer habis
-  useEffect(() => {
+}, [id]);
+
+
+useEffect(() => {
   if (!endTime) return;
 
   const interval = setInterval(() => {
@@ -82,7 +79,7 @@ export default function UjianClient() {
 
     if (sisa <= 0) {
       clearInterval(interval);
-      handleAutoSubmit(); // 🔥 KUNCI
+      handleAutoSubmit();
     } else {
       setSisaWaktu(sisa);
     }
