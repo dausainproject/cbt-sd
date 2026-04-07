@@ -55,17 +55,20 @@ export default function UjianClient() {
       return;
     }
 
-    // 🔥 AMBIL WAKTU SERVER (BIAR SAMA SEMUA DEVICE)
+    // ✅ ambil waktu server
     const { data: serverTime } = await supabase.rpc("now_time");
+
+    if (!serverTime) return;
 
     const mulai = new Date(data.waktu_mulai).getTime();
     const nowServer = new Date(serverTime).getTime();
 
     const selesai = mulai + data.durasi_menit * 60 * 1000;
 
+    // 🔥 FIX: pakai selisih biar semua device sinkron
     const sisa = selesai - nowServer;
 
-    setEndTime(nowServer + sisa);
+    setEndTime(Date.now() + sisa);
   };
 
   fetchTimer();
