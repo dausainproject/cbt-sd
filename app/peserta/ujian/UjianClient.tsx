@@ -134,12 +134,7 @@ useEffect(() => {
   }
 }, [id]);
 
-  // 🔥 LOAD SOAL OTOMATIS
-useEffect(() => {
-  if (id) {
-    loadSoal();
-  }
-}, [id]);
+  
 
 async function loadSoal() {
   setLoading(true);
@@ -428,7 +423,7 @@ sesi: sesi, // 🔥 WAJIB
 
             {current === soal.length - 1 ? (
               <button
-                onClick={submitUjian}
+  onClick={() => submitUjian(false)}
                 disabled={submitting}
                 className={`px-6 py-2 rounded text-white ${
                   submitting ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
