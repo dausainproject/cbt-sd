@@ -444,6 +444,24 @@ interval = setInterval(() => {
   };
 }, [selectedAsesmen, sesi, ujianAktif]);
 
+  
+  function formatTime(totalSeconds: number) {
+  const jam = Math.floor(totalSeconds / 3600);
+  const menit = Math.floor((totalSeconds % 3600) / 60);
+  const detik = totalSeconds % 60;
+
+  return [
+    jam.toString().padStart(2, "0"),
+    menit.toString().padStart(2, "0"),
+    detik.toString().padStart(2, "0"),
+  ].join(":");
+}
+  
+  
+  
+  
+  
+  
   // ===============================
   // UI
   // ===============================
