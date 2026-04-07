@@ -26,6 +26,8 @@ export default function UjianClient() {
   const [jawaban, setJawaban] = useState<{ [key: number]: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [statusInserted, setStatusInserted] = useState(false);
+  const [sisaWaktu, setSisaWaktu] = useState(0);
+  const [endTime, setEndTime] = useState(0);
 
   // ✅ WAJIB ADA INI
   useEffect(() => {
@@ -33,6 +35,52 @@ export default function UjianClient() {
     setSesi(s);
   }, []);
 
+// killer timer
+  useEffect(() => {
+  const fetchTimer = async () => {
+    if (!id) return;
+
+    const { data, error } = await supabase
+      .from("ujian_aktif")
+      .select("waktu_mulai, durasi_menit, status")
+      .eq("id_asesmen", id)
+      .eq("status", "berlangsung")
+      .single();
+
+    if (error || !data) {
+      console.log("❌ Gagal ambil timer");
+      return;
+    }
+
+    const mulai = new Date(data.waktu_mulai).getTime();
+    const selesai = mulai + data.durasi_menit * 60 * 1000;
+
+    setEndTime(selesai);
+  };
+
+  fetchTimer();
+}, [id]);
+
+  // auto kirim pas timer habis
+  useEffect(() => {
+  if (!endTime) return;
+
+  const interval = setInterval(() => {
+    const now = Date.now();
+    const sisa = endTime - now;
+
+    if (sisa <= 0) {
+      clearInterval(interval);
+      handleAutoSubmit(); // 🔥 KUNCI
+    } else {
+      setSisaWaktu(sisa);
+    }
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [endTime]);
+
+  
   // 🔥 INSERT STATUS SAAT MULAI UJIAN
 useEffect(() => {
   const insertStatus = async () => {
@@ -177,7 +225,14 @@ async function loadSoal() {
   return [String(val).toLowerCase().trim()];
 }
 
-  async function submitUjian() {
+async function handleAutoSubmit() {
+  if (submitting) return;
+
+  console.log("⏰ AUTO SUBMIT TERJALAN");
+
+  await submitUjian(true); // 🔥 kirim flag auto
+}  
+  async function submitUjian(isAuto = false) {
   if (submitting) return;
   setSubmitting(true);
 
@@ -188,6 +243,9 @@ async function loadSoal() {
     return;
   }
 
+
+
+    
   // ✅ 1. AMBIL SOAL
   const { data: soalDB, error: errSoal } = await supabase
     .from("bank_soal")
@@ -307,7 +365,7 @@ else {
       jumlah_benar_soal: benarSoal,      // 🔥 jumlah soal benar
       jumlah_salah: jumlahSalah,
       jumlah_kosong: jumlahKosong,
-      status: "selesai",
+      status: isAuto ? "auto_submit" : "selesai",
 sesi: sesi, // 🔥 WAJIB
       selesai_pada: new Date().toISOString(),
     },
