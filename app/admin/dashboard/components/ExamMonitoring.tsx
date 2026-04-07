@@ -452,100 +452,122 @@ interval = setInterval(() => {
     <div className="p-6 grid grid-cols-3 gap-6">
 
       {/* LEFT SIDE */}
-      <div className="col-span-1 space-y-6">
+<div className="col-span-1 space-y-6">
 
-        {/* KONFIGURASI */}
-<div className="bg-white p-4 rounded shadow">
-  <h2 className="font-bold mb-4">Konfigurasi Ujian</h2>
+  {/* ⏱ TIMER CARD */}
+  <div className={`p-5 rounded-2xl shadow text-center text-white transition-all ${
+    sisaWaktu <= 0
+      ? "bg-gray-400"
+      : sisaWaktu < 60
+      ? "bg-red-700 animate-pulse"
+      : "bg-red-500"
+  }`}>
+    <h2 className="font-semibold text-sm mb-1">Sisa Waktu</h2>
 
-  <p className="mb-3 text-sm">
-    Asesmen: <b>{asesmen[0]?.nama_asesmen || "-"}</b>
-  </p>
-
-  <label className="text-sm">Durasi</label>
-  <input
-    type="number"
-    disabled={ujianAktif}
-    className="w-full border p-2 mb-3"
-    value={durasi}
-    onChange={(e) => setDurasi(Number(e.target.value))}
-  />
-
-  <label className="text-sm">Sesi Ujian</label>
-  <select
-    disabled={ujianAktif}
-    className="w-full border p-2 mb-3"
-    value={sesi}
-    onChange={(e) => setSesi(Number(e.target.value))}
-  >
-    <option value={1}>Sesi 1 (Utama)</option>
-    <option value={2}>Sesi 2 (Susulan)</option>
-    <option value={3}>Sesi 3</option>
-  </select>
-
-  <label className="text-sm">Jenis Sesi</label>
-  <select
-    disabled={ujianAktif}
-    className="w-full border p-2 mb-3"
-    value={jenisSesi}
-    onChange={(e) => setJenisSesi(e.target.value)}
-  >
-    <option value="utama">Ujian Utama</option>
-    <option value="susulan">Ujian Susulan</option>
-  </select>
-
-  <input
-    value={token}
-    readOnly
-    className="border p-2 w-full mb-3"
-    placeholder="TOKEN"
-  />
-
-  <button
-  onClick={generateToken}
-  disabled={ujianAktif}
-  className={`w-full py-2 rounded mb-3 text-white ${
-    ujianAktif || !!token
-      ? "bg-gray-400 cursor-not-allowed"
-      : "bg-blue-600 hover:bg-blue-700"
-  }`}
->
-  RILIS TOKEN
-</button>
-
-  <button
-    onClick={ujianAktif ? stopUjian : mulaiUjian}
-    className={`w-full py-2 rounded text-white ${
-      ujianAktif
-        ? "bg-red-600 hover:bg-red-700"
-        : "bg-green-600 hover:bg-green-700"
-    }`}
-  >
-    {ujianAktif ? "STOP UJIAN" : "MULAI UJIAN"}
-  </button>
-</div> {/* ✅ FIX: div ditutup di sini */}
-
-{/* STATISTIK */}
-<div className="bg-sky-500 text-white p-4 rounded shadow">
-  <h2 className="font-bold mb-3">Statistik</h2>
-
-  <div className="grid grid-cols-2 gap-2 text-sm">
-    <div className="bg-white/20 p-2 rounded">
-      Login : {statLogin}
+    <div className="text-4xl font-mono tracking-widest">
+      {formatTime(sisaWaktu)}
     </div>
 
-    <div className="bg-white/20 p-2 rounded">
-      Sedang Ujian : {statSedang}
+    <p className="text-xs mt-2 opacity-80">
+      {ujianAktif ? "Ujian sedang berlangsung" : "Ujian tidak aktif"}
+    </p>
+  </div>
+
+  {/* ⚙️ KONFIGURASI */}
+  <div className="bg-white p-4 rounded-2xl shadow">
+    <h2 className="font-bold mb-4">Konfigurasi Ujian</h2>
+
+    <p className="mb-3 text-sm">
+      Asesmen: <b>{asesmen[0]?.nama_asesmen || "-"}</b>
+    </p>
+
+    <label className="text-sm">Durasi (menit)</label>
+    <input
+      type="number"
+      disabled={ujianAktif}
+      className="w-full border p-2 mb-3 rounded"
+      value={durasi}
+      onChange={(e) => setDurasi(Number(e.target.value))}
+    />
+
+    <label className="text-sm">Sesi Ujian</label>
+    <select
+      disabled={ujianAktif}
+      className="w-full border p-2 mb-3 rounded"
+      value={sesi}
+      onChange={(e) => setSesi(Number(e.target.value))}
+    >
+      <option value={1}>Sesi 1 (Utama)</option>
+      <option value={2}>Sesi 2 (Susulan)</option>
+      <option value={3}>Sesi 3</option>
+    </select>
+
+    <label className="text-sm">Jenis Sesi</label>
+    <select
+      disabled={ujianAktif}
+      className="w-full border p-2 mb-3 rounded"
+      value={jenisSesi}
+      onChange={(e) => setJenisSesi(e.target.value)}
+    >
+      <option value="utama">Ujian Utama</option>
+      <option value="susulan">Ujian Susulan</option>
+    </select>
+
+    {/* TOKEN */}
+    <div className="bg-gray-100 p-3 rounded mb-3 text-center">
+      <p className="text-xs text-gray-500">TOKEN</p>
+      <div className="text-lg font-mono tracking-widest">
+        {token || "------"}
+      </div>
     </div>
 
-    <div className="bg-white/20 p-2 rounded">
-      Selesai : {statSelesai}
-    </div>
+    <button
+      onClick={generateToken}
+      disabled={ujianAktif || !!token}
+      className={`w-full py-2 rounded mb-3 text-white ${
+        ujianAktif || !!token
+          ? "bg-gray-400 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700"
+      }`}
+    >
+      RILIS TOKEN
+    </button>
 
-    <div className="bg-white/20 p-2 rounded">
-      Warning : {statWarning}
+    <button
+      onClick={ujianAktif ? stopUjian : mulaiUjian}
+      className={`w-full py-2 rounded text-white font-semibold ${
+        ujianAktif
+          ? "bg-red-600 hover:bg-red-700"
+          : "bg-green-600 hover:bg-green-700"
+      }`}
+    >
+      {ujianAktif ? "STOP UJIAN" : "MULAI UJIAN"}
+    </button>
+  </div>
+
+  {/* 📊 STATISTIK */}
+  <div className="bg-sky-500 text-white p-4 rounded-2xl shadow">
+    <h2 className="font-bold mb-3">Statistik</h2>
+
+    <div className="grid grid-cols-2 gap-2 text-sm">
+      <div className="bg-white/20 p-2 rounded">
+        Login : {statLogin}
+      </div>
+
+      <div className="bg-white/20 p-2 rounded">
+        Sedang : {statSedang}
+      </div>
+
+      <div className="bg-white/20 p-2 rounded">
+        Selesai : {statSelesai}
+      </div>
+
+      <div className="bg-white/20 p-2 rounded">
+        Warning : {statWarning}
+      </div>
     </div>
   </div>
+
 </div>
 		
 		
