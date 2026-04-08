@@ -47,13 +47,10 @@ useEffect(() => {
       .select("waktu_mulai, durasi_menit, status")
       .eq("id_asesmen", id)
       .eq("status", "berlangsung")
-      .maybeSingle();
-console.log("TIMER DATA:", data);
-console.log("ERROR:", error);
+      .maybeSingle(); // ✅ gunakan salah satu: maybeSingle() atau single()
 
-      .eq("status", "berlangsung")
-      .single();
-
+    console.log("TIMER DATA:", data);
+    console.log("ERROR:", error);
 
     if (error || !data) {
       console.log("❌ Gagal ambil timer");
