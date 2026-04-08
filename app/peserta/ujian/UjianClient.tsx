@@ -46,7 +46,7 @@ useEffect(() => {
       .from("ujian_aktif")
       .select("waktu_mulai, durasi_menit, status")
       .eq("id_asesmen", id)
-      .eq("status", "berlangsung")
+      .eq("status", "berjalan")
       .maybeSingle(); // ✅ gunakan salah satu: maybeSingle() atau single()
 
     console.log("TIMER DATA:", data);
