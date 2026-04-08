@@ -109,16 +109,13 @@ useEffect(() => {
     return;
   }
 
-  // 🔥 1. RESET TOKEN STATE (frontend)
-  setToken("");
+  // 🔥 WAJIB ADA TOKEN DULU
+  if (!token) {
+    alert("Rilis token dulu!");
+    return;
+  }
 
-  // 🔥 2. MATIKAN SEMUA TOKEN LAMA (database)
-  await supabase
-    .from("token_ujian")
-    .update({ status: false })
-    .eq("id_asesmen", selectedAsesmen);
-
-  // 🔥 3. CEK DATA UJIAN AKTIF
+  // 🔥 CEK DATA UJIAN AKTIF
   const { data: existing } = await supabase
     .from("ujian_aktif")
     .select("*")
@@ -129,7 +126,6 @@ useEffect(() => {
   let error;
 
   if (existing) {
-    // 🔥 UPDATE kalau sudah ada
     const res = await supabase
       .from("ujian_aktif")
       .update({
@@ -143,7 +139,6 @@ useEffect(() => {
 
     error = res.error;
   } else {
-    // 🔥 INSERT kalau belum ada
     const res = await supabase
       .from("ujian_aktif")
       .insert({
@@ -163,11 +158,7 @@ useEffect(() => {
     alert("Gagal memulai ujian: " + error.message);
   } else {
     alert("Ujian dimulai");
-
-    // 🔥 4. SET STATE
     setUjianAktif(true);
-
-    // 🔥 5. RELOAD DATA
     loadPeserta();
   }
 }
@@ -191,25 +182,21 @@ async function stopUjian() {
     return;
   }
 
-  // 🔥 2. MATIKAN SEMUA TOKEN
+  // 🔥 2. MATIKAN TOKEN DI DB
   await supabase
     .from("token_ujian")
     .update({ status: false })
     .eq("id_asesmen", selectedAsesmen);
 
-  // 🔥 3. RESET STATE FRONTEND
+  // 🔥 3. CLEAR TOKEN DI UI
   setToken("");
-  
+
+  // 🔥 4. MATIKAN STATE
   setUjianAktif(false);
-
-  
-
-  // 🔥 5. SYNC ULANG TOKEN (biar gak ke-load lagi dari DB)
-  await loadToken();
 
   alert("Ujian dihentikan");
 
-  // 🔥 6. RELOAD DATA
+  // 🔥 5. RELOAD DATA
   loadPeserta();
 }
 
@@ -232,14 +219,14 @@ async function loadKonfigurasi() {
 
 //kunci token
 async function loadToken() {
-  if (!selectedAsesmen) return;
+  if (!selectedAsesmen || ujianAktif) return; // 🔥 INI KUNCI
 
   const { data } = await supabase
     .from("token_ujian")
     .select("token")
     .eq("id_asesmen", selectedAsesmen)
     .eq("status", true)
-    .order("created_at", { ascending: false }) // 🔥 WAJIB
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
