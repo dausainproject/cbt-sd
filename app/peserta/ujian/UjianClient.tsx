@@ -46,16 +46,15 @@ useEffect(() => {
       .from("ujian_aktif")
       .select("waktu_mulai, durasi_menit, status")
       .eq("id_asesmen", id)
-<<<<<<< HEAD
       .eq("status", "berjalan")
       .maybeSingle();
 console.log("TIMER DATA:", data);
 console.log("ERROR:", error);
-=======
+
       .eq("status", "berlangsung")
       .single();
 
->>>>>>> f67a7c15dd1d634f08676571c36ae63f0466bcd0
+
     if (error || !data) {
       console.log("❌ Gagal ambil timer");
       return;
@@ -577,8 +576,7 @@ sesi: sesi, // 🔥 WAJIB
     </div>
   </>
 );
-<<<<<<< HEAD
+
 }
-=======
 }
->>>>>>> f67a7c15dd1d634f08676571c36ae63f0466bcd0
+
