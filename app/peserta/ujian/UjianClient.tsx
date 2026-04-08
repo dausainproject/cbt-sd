@@ -77,16 +77,16 @@ useEffect(() => {
   if (!endTime) return;
 
   const interval = setInterval(() => {
-    const now = Date.now();
-    const sisa = endTime - now;
+  const now = Date.now();
+  const sisaMs = endTime - now;
 
-    if (sisa <= 0) {
-      clearInterval(interval);
-      handleAutoSubmit();
-    } else {
-      setSisaWaktu(sisa);
-    }
-  }, 1000);
+  if (sisaMs <= 0) {
+    clearInterval(interval);
+    handleAutoSubmit();
+  } else {
+    setSisaWaktu(Math.floor(sisaMs / 1000)); // convert ke detik
+  }
+}, 1000);
 
   return () => clearInterval(interval);
 }, [endTime]);
@@ -274,15 +274,11 @@ async function loadSoal() {
   return [String(val).toLowerCase().trim()];
 }
 
-function formatWaktu(ms: number) {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const jam = Math.floor(total / 3600);
-  const menit = Math.floor((total % 3600) / 60);
-  const detik = total % 60;
-
-  return `${jam.toString().padStart(2, "0")}:${menit
-    .toString()
-    .padStart(2, "0")}:${detik.toString().padStart(2, "0")}`;
+function formatWaktu(totalDetik: number) {
+  const jam = Math.floor(totalDetik / 3600);
+  const menit = Math.floor((totalDetik % 3600) / 60);
+  const detik = totalDetik % 60;
+  return `${jam.toString().padStart(2,"0")}:${menit.toString().padStart(2,"0")}:${detik.toString().padStart(2,"0")}`;
 }
   
 async function handleAutoSubmit() {
@@ -575,5 +571,3 @@ sesi: sesi, // 🔥 WAJIB
 );
 
 }
-
-
