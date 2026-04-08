@@ -66,7 +66,8 @@ useEffect(() => {
 
     const sisa = selesai - nowServer;
 
-    setEndTime(Date.now() + sisa);
+   
+setEndTime(nowServer + sisa);
   };
 
   fetchTimer();
