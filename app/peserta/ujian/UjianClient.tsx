@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -38,36 +39,47 @@ export default function UjianClient() {
     setSesi(s);
   }, []);
 
+
+useEffect(() => {
+  if (!id) return;
+
+  const key = "start_time_" + id;
+  const existing = localStorage.getItem(key);
+
+  if (!existing) {
+    const now = Date.now();
+    localStorage.setItem(key, now.toString());
+    console.log("⏱️ start disimpan:", now);
+  }
+}, [id]);
+
+
 useEffect(() => {
   const fetchTimer = async () => {
     if (!id) return;
 
     const { data, error } = await supabase
       .from("ujian_aktif")
-      .select("waktu_mulai, durasi_menit, status")
+      .select("durasi_menit")
       .eq("id_asesmen", id)
       .eq("status", "berjalan")
-      .maybeSingle(); // ✅ gunakan salah satu: maybeSingle() atau single()
-
-    console.log("TIMER DATA:", data);
-    console.log("ERROR:", error);
+      .single();
 
     if (error || !data) {
-      console.log("❌ Gagal ambil timer");
+      console.log("❌ Gagal ambil durasi");
       return;
     }
 
-    const { data: serverTime } = await supabase.rpc("now_time");
-    if (!serverTime) return;
+    const start = Number(localStorage.getItem("start_time_" + id));
+    if (!start) return;
 
-    const mulai = new Date(data.waktu_mulai).getTime();
-    const nowServer = new Date(serverTime).getTime();
-    const selesai = mulai + data.durasi_menit * 60 * 1000;
+    const durasiMs = data.durasi_menit * 60 * 1000;
+    const selesai = start + durasiMs;
 
-    const sisa = selesai - nowServer;
+    console.log("START:", start);
+    console.log("SELESAI:", selesai);
 
-   
-setEndTime(nowServer + sisa);
+    setEndTime(selesai);
   };
 
   fetchTimer();
@@ -428,9 +440,13 @@ sesi: sesi, // 🔥 WAJIB
   );
 
   if (!errInsert) {
-    localStorage.removeItem("jawaban_ujian");
-    router.push(`/peserta/hasil?id=${id}`);
-  } else {
+  localStorage.removeItem("jawaban_ujian");
+
+  // 🔥 TAMBAHKAN INI
+  localStorage.removeItem("start_time_" + id);
+
+  router.push(`/peserta/hasil?id=${id}`);
+} else {
     alert("Gagal simpan laporan");
   }
 
