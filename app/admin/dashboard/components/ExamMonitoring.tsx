@@ -35,7 +35,7 @@ export default function ExamMonitoring() {
   const [statSedang, setStatSedang] = useState(0);
   const [statSelesai, setStatSelesai] = useState(0);
   const [statWarning, setStatWarning] = useState(0);
-  const [sisaWaktu, setSisaWaktu] = useState<number>(0);
+  
   const [sesi, setSesi] = useState(1);
   const [ujianAktif, setUjianAktif] = useState(false);
 const [jenisSesi, setJenisSesi] = useState("utama");
@@ -199,11 +199,10 @@ async function stopUjian() {
 
   // 🔥 3. RESET STATE FRONTEND
   setToken("");
-  setSisaWaktu(0);
+  
   setUjianAktif(false);
 
-  // 🔥 4. OPTIONAL: BERSIHKAN TIMER LOCAL (kalau dipakai di client lain)
-  localStorage.removeItem("start_time_" + selectedAsesmen);
+  
 
   // 🔥 5. SYNC ULANG TOKEN (biar gak ke-load lagi dari DB)
   await loadToken();
@@ -409,88 +408,6 @@ async function generateToken() {
     return <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded">Belum Login</span>;
   }
 
-
-
-
-useEffect(() => {
-  if (!selectedAsesmen) return;
-
-  let interval: any;
-
-  const ambilWaktu = async () => {
-    const { data } = await supabase
-      .from("ujian_aktif")
-      .select("waktu_mulai,durasi_menit,status")
-      .eq("id_asesmen", selectedAsesmen)
-      .eq("sesi", sesi)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (!data) return;
-
-    // hanya jalan kalau ujian sedang berlangsung
-    if (data.status !== "berjalan") {
-      setSisaWaktu(0);
-      return;
-    }
-
-    const mulai = new Date(data.waktu_mulai).getTime();
-const selesai = mulai + data.durasi_menit * 60 * 1000;
-
-// 🔥 HARD CHECK
-if (Date.now() >= selesai) {
-  setSisaWaktu(0);
-
-  if (ujianAktif) {
-    stopUjian();
-  }
-
-  return;
-}
-
-interval = setInterval(() => {
-  const sekarang = Date.now();
-  const sisa = Math.floor((selesai - sekarang) / 1000);
-
-  if (sisa <= 0) {
-    setSisaWaktu(0);
-    clearInterval(interval);
-
-    setUjianAktif((prev) => {
-      if (prev) stopUjian();
-      return false;
-    });
-
-  } else {
-    setSisaWaktu(sisa);
-  }
-}, 1000);
-  };
-
-  ambilWaktu();
-
-  return () => {
-    if (interval) clearInterval(interval);
-  };
-}, [selectedAsesmen, sesi, ujianAktif]);
-
-  
-  function formatTime(totalSeconds: number) {
-  const jam = Math.floor(totalSeconds / 3600);
-  const menit = Math.floor((totalSeconds % 3600) / 60);
-  const detik = totalSeconds % 60;
-
-  return [
-    jam.toString().padStart(2, "0"),
-    menit.toString().padStart(2, "0"),
-    detik.toString().padStart(2, "0"),
-  ].join(":");
-}
-  
-  
-  
-  
   
   
   // ===============================
@@ -503,25 +420,7 @@ interval = setInterval(() => {
       {/* LEFT SIDE */}
 <div className="col-span-1 space-y-6">
 
-  {/* ⏱ TIMER CARD */}
-  <div className={`p-5 rounded-2xl shadow text-center text-white transition-all ${
-    sisaWaktu <= 0
-      ? "bg-gray-400"
-      : sisaWaktu < 60
-      ? "bg-red-700 animate-pulse"
-      : "bg-red-500"
-  }`}>
-    <h2 className="font-semibold text-sm mb-1">Sisa Waktu</h2>
-
-    <div className="text-4xl font-mono tracking-widest">
-      {formatTime(sisaWaktu)}
-    </div>
-
-    <p className="text-xs mt-2 opacity-80">
-      {ujianAktif ? "Ujian sedang berlangsung" : "Ujian tidak aktif"}
-    </p>
-  </div>
-
+  
   {/* ⚙️ KONFIGURASI */}
   <div className="bg-white p-4 rounded-2xl shadow">
     <h2 className="font-bold mb-4">Konfigurasi Ujian</h2>
