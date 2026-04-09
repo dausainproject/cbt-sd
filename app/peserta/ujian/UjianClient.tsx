@@ -322,7 +322,7 @@ async function handleAutoSubmit() {
   const { data: soalDB, error: errSoal } = await supabase
     .from("bank_soal")
     .select("id, kunci, bobot, tipe")
-    .eq("id_asesmen", id);
+    .eq("id_asesmen", Number(id));
 
   if (errSoal || !soalDB) {
     alert("Gagal ambil kunci");
@@ -403,12 +403,19 @@ async function handleAutoSubmit() {
   const { error: errJawaban } = await supabase
     .from("jawaban_peserta")
     .upsert(dataKirim, {
-      onConflict: "no_peserta,id_soal,id_asesmen,sesi",
+      onConflict: "no_peserta,id_asesmen,id_soal",
     });
 
   if (errJawaban) {
-    console.log("❌ Gagal simpan jawaban:", errJawaban);
-    alert("Gagal simpan jawaban");
+  console.log("❌ FULL ERROR:", JSON.stringify(errJawaban, null, 2));
+  alert(
+    "Gagal simpan jawaban:\n" +
+    errJawaban.message +
+    "\nCODE: " + errJawaban.code
+  );
+  setSubmitting(false);
+  return;
+}
     setSubmitting(false);
     return;
   }
