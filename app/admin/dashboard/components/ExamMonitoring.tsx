@@ -249,7 +249,9 @@ useEffect(() => {
   function hitungStat(data: Monitoring[]) {
     setStatLogin(data.filter((p) => p.status !== "belum_login").length);
     setStatSedang(data.filter((p) => p.status === "sedang").length);
-    setStatSelesai(data.filter((p) => p.status === "selesai").length);
+    setStatSelesai(
+  data.filter((p) => p.status === "selesai" || p.status === "auto_submit").length
+);
     setStatWarning(data.filter((p) => p.pelanggaran > 0).length);
   }
 
@@ -296,16 +298,16 @@ useEffect(() => {
                   : p
               );
             } else {
-              updated = [
-                ...prev,
-                {
-                  no_peserta: newData.no_peserta,
-                  nama_lengkap: newData.nama_lengkap || "-",
-                  status: newData.status,
-                  pelanggaran: newData.pelanggaran,
-                },
-              ];
-            }
+  updated = [
+    ...prev,
+    {
+      no_peserta: newData.no_peserta,
+      nama_lengkap: existing?.nama_lengkap || "-", // ✅ FIX
+      status: newData.status,
+      pelanggaran: newData.pelanggaran,
+    },
+  ];
+}
 
             // 🔥 WAJIB: update statistik juga
             hitungStat(updated);
@@ -386,14 +388,14 @@ async function generateToken() {
   // ===============================
 
   function statusBadge(status: string) {
-    if (status === "sedang")
-      return <span className="bg-yellow-200 text-yellow-800 px-2 py-1 rounded">Tes Berlangsung</span>;
+  if (status === "sedang")
+    return <span className="bg-yellow-200 text-yellow-800 px-2 py-1 rounded">Tes Berlangsung</span>;
 
-    if (status === "selesai")
-      return <span className="bg-green-200 text-green-800 px-2 py-1 rounded">Selesai</span>;
+  if (status === "selesai" || status === "auto_submit")
+    return <span className="bg-green-200 text-green-800 px-2 py-1 rounded">Selesai</span>;
 
-    return <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded">Belum Login</span>;
-  }
+  return <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded">Belum Login</span>;
+}
 
   
   
@@ -537,10 +539,11 @@ async function generateToken() {
   if (a.pelanggaran < b.pelanggaran) return 1;
 
   const order: any = {
-    sedang: 1,
-    belum_login: 2,
-    selesai: 3
-  };
+  sedang: 1,
+  belum_login: 2,
+  selesai: 3,
+  auto_submit: 3
+};
 
   return order[a.status] - order[b.status];
 })
