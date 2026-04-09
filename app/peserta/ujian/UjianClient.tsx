@@ -468,51 +468,7 @@ async function handleAutoSubmit() {
   }
 }
 
-  // ✅ 4. HITUNG NILAI FINAL
-  const totalPoint = dataKirim.reduce(
-    (sum, item) => sum + (item.point || 0),
-    0
-  );
-
-  const nilaiAkhir =
-    totalBobot > 0
-      ? (totalPoint / totalBobot) * 100
-      : 0;
-
-  // ✅ 5. SIMPAN LAPORAN
-  const { error: errInsert } = await supabase
-    .from("laporan_ujian")
-    .upsert(
-      {
-        id_asesmen: Number(id),
-        no_peserta: String(noPeserta),
-        nilai: nilaiAkhir,
-        jumlah_benar: totalPoint,
-        jumlah_benar_soal: benarSoal,
-        jumlah_salah: jumlahSalah,
-        jumlah_kosong: jumlahKosong,
-        status: isAuto ? "auto_submit" : "selesai",
-        sesi: sesi,
-        selesai_pada: new Date().toISOString(),
-      },
-      { onConflict: "no_peserta,id_asesmen,sesi" }
-    );
-
-  if (errInsert) {
-    console.log("❌ Gagal simpan laporan:", errInsert);
-    alert("Gagal simpan laporan");
-    setSubmitting(false);
-    return;
-  }
-
-  // ✅ 6. BERSIHIN
-  localStorage.removeItem("jawaban_ujian");
-  localStorage.removeItem("start_time_" + id);
-
-  router.push(`/peserta/hasil?id=${id}`);
-
-  setSubmitting(false);
-}
+  
 
   if (loading) return <div className="p-10 text-center">Loading soal...</div>;
   if (soal.length === 0) return <div className="p-10 text-center">Soal belum tersedia</div>;
