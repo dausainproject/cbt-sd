@@ -307,118 +307,166 @@ async function handleAutoSubmit() {
   if (submitting) return;
   setSubmitting(true);
 
-  // 🔥 AMBIL JAWABAN TERBARU DARI LOCALSTORAGE (FIX UTAMA)
-  const saved = localStorage.getItem("jawaban_ujian");
-  const jawabanFix = saved ? JSON.parse(saved) : {};
+  try {
+    // 🔥 ambil jawaban terbaru
+    const saved = localStorage.getItem("jawaban_ujian");
+    const jawabanFix = saved ? JSON.parse(saved) : {};
 
-  const noPeserta = localStorage.getItem("no_peserta");
-  if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
-    alert("No peserta tidak valid");
-    setSubmitting(false);
-    return;
-  }
-
-  // ✅ 1. AMBIL SOAL
-  const { data: soalDB, error: errSoal } = await supabase
-    .from("bank_soal")
-    .select("id, kunci, bobot, tipe")
-    .eq("id_asesmen", Number(id));
-
-  if (errSoal || !soalDB) {
-    alert("Gagal ambil kunci");
-    setSubmitting(false);
-    return;
-  }
-
-  // ✅ 2. HITUNG + BUAT dataKirim
-  let totalBobot = 0;
-  let jumlahSalah = 0;
-  let jumlahKosong = 0;
-  let benarSoal = 0;
-
-  const dataKirim = soalDB.map(item => {
-    const jwbRaw = jawabanFix[item.id]; // 🔥 pakai yang fix
-
-    const userArr = normalizeAnswer(jwbRaw);
-    const kunciArr = normalizeAnswer(item.kunci);
-
-    const bobot = item.bobot || 1;
-    totalBobot += bobot;
-
-    let point = 0;
-
-    if (userArr.length === 0) {
-      jumlahKosong++;
-      point = 0;
-    } else {
-
-      if (item.tipe === "pg" || item.tipe === "bs") {
-        if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
-          point = bobot;
-          benarSoal++;
-        } else {
-          jumlahSalah++;
-        }
-      }
-
-      else if (item.tipe === "pgk") {
-        let benarCount = 0;
-
-        kunciArr.forEach(k => {
-          if (userArr.includes(k)) benarCount++;
-        });
-
-        point = benarCount;
-
-        if (benarCount > 0) benarSoal++;
-        else jumlahSalah++;
-      }
-
-      else if (item.tipe === "bs_kompleks") {
-        let benarCount = 0;
-
-        for (let i = 0; i < kunciArr.length; i++) {
-          if (userArr[i] === kunciArr[i]) benarCount++;
-        }
-
-        point = benarCount;
-
-        if (benarCount > 0) benarSoal++;
-        else jumlahSalah++;
-      }
+    const noPeserta = localStorage.getItem("no_peserta");
+    if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
+      alert("No peserta tidak valid");
+      setSubmitting(false);
+      return;
     }
 
-    return {
-      no_peserta: noPeserta,
-      id_soal: item.id,
-      id_asesmen: Number(id),
-      jawaban: jwbRaw ?? null, // 🔥 pastikan null kalau kosong
-      point: point,
-      sesi: sesi,
-      ragu: false
-    };
-  });
+    // ✅ 1. ambil soal
+    const { data: soalDB, error: errSoal } = await supabase
+      .from("bank_soal")
+      .select("id, kunci, bobot, tipe")
+      .eq("id_asesmen", Number(id));
 
-  // ✅ 3. SIMPAN JAWABAN + POINT
-  const { error: errJawaban } = await supabase
-    .from("jawaban_peserta")
-    .upsert(dataKirim, {
-      onConflict: "no_peserta,id_asesmen,id_soal",
+    if (errSoal || !soalDB) {
+      alert("Gagal ambil kunci");
+      setSubmitting(false);
+      return;
+    }
+
+    // ✅ 2. hitung nilai
+    let totalBobot = 0;
+    let jumlahSalah = 0;
+    let jumlahKosong = 0;
+    let benarSoal = 0;
+
+    const dataKirim = soalDB.map(item => {
+      const jwbRaw = jawabanFix[item.id];
+
+      const userArr = normalizeAnswer(jwbRaw);
+      const kunciArr = normalizeAnswer(item.kunci);
+
+      const bobot = item.bobot || 1;
+      totalBobot += bobot;
+
+      let point = 0;
+
+      if (userArr.length === 0) {
+        jumlahKosong++;
+      } else {
+        if (item.tipe === "pg" || item.tipe === "bs") {
+          if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
+            point = bobot;
+            benarSoal++;
+          } else {
+            jumlahSalah++;
+          }
+        }
+
+        else if (item.tipe === "pgk") {
+          let benarCount = 0;
+
+          kunciArr.forEach(k => {
+            if (userArr.includes(k)) benarCount++;
+          });
+
+          point = benarCount;
+
+          if (benarCount > 0) benarSoal++;
+          else jumlahSalah++;
+        }
+
+        else if (item.tipe === "bs_kompleks") {
+          let benarCount = 0;
+
+          for (let i = 0; i < kunciArr.length; i++) {
+            if (userArr[i] === kunciArr[i]) benarCount++;
+          }
+
+          point = benarCount;
+
+          if (benarCount > 0) benarSoal++;
+          else jumlahSalah++;
+        }
+      }
+
+      return {
+        no_peserta: noPeserta,
+        id_soal: item.id,
+        id_asesmen: Number(id),
+        jawaban: jwbRaw ?? null,
+        point: point,
+        sesi: sesi,
+        ragu: false
+      };
     });
 
-  if (errJawaban) {
-  console.log("❌ FULL ERROR:", JSON.stringify(errJawaban, null, 2));
-  alert(
-    "Gagal simpan jawaban:\n" +
-    errJawaban.message +
-    "\nCODE: " + errJawaban.code
-  );
-  setSubmitting(false);
-  return;
-}
+    // ✅ 3. simpan jawaban
+    const { error: errJawaban } = await supabase
+      .from("jawaban_peserta")
+      .upsert(dataKirim, {
+        onConflict: "no_peserta,id_asesmen,id_soal",
+      });
+
+    if (errJawaban) {
+      console.log("❌ FULL ERROR:", JSON.stringify(errJawaban, null, 2));
+      alert(
+        "Gagal simpan jawaban:\n" +
+        errJawaban.message +
+        "\nCODE: " + errJawaban.code
+      );
+      setSubmitting(false);
+      return;
+    }
+
+    // ✅ 4. hitung nilai akhir
+    const totalPoint = dataKirim.reduce(
+      (sum, item) => sum + (item.point || 0),
+      0
+    );
+
+    const nilaiAkhir =
+      totalBobot > 0
+        ? (totalPoint / totalBobot) * 100
+        : 0;
+
+    // ✅ 5. simpan laporan
+    const { error: errInsert } = await supabase
+      .from("laporan_ujian")
+      .upsert(
+        {
+          id_asesmen: Number(id),
+          no_peserta: String(noPeserta),
+          nilai: nilaiAkhir,
+          jumlah_benar: totalPoint,
+          jumlah_benar_soal: benarSoal,
+          jumlah_salah: jumlahSalah,
+          jumlah_kosong: jumlahKosong,
+          status: isAuto ? "auto_submit" : "selesai",
+          sesi: sesi,
+          selesai_pada: new Date().toISOString(),
+        },
+        { onConflict: "no_peserta,id_asesmen,sesi" }
+      );
+
+    if (errInsert) {
+      console.log("❌ Gagal simpan laporan:", errInsert);
+      alert("Gagal simpan laporan");
+      setSubmitting(false);
+      return;
+    }
+
+    // ✅ 6. bersihin
+    localStorage.removeItem("jawaban_ujian");
+    localStorage.removeItem("start_time_" + id);
+
+    // ✅ 7. redirect
+    router.push(`/peserta/hasil?id=${id}`);
+
+  } catch (err) {
+    console.error("❌ ERROR SUBMIT:", err);
+    alert("Terjadi kesalahan saat submit");
+  } finally {
     setSubmitting(false);
-    return;
   }
+}
 
   // ✅ 4. HITUNG NILAI FINAL
   const totalPoint = dataKirim.reduce(
