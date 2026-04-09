@@ -299,11 +299,17 @@ async function handleAutoSubmit() {
 
   console.log("⏰ AUTO SUBMIT TERJALAN");
 
-  await submitUjian(true); // 🔥 kirim flag auto
+  setTimeout(() => {
+    submitUjian(true);
+  }, 300); // kasih napas
 }  
   async function submitUjian(isAuto = false) {
   if (submitting) return;
   setSubmitting(true);
+
+  // 🔥 AMBIL JAWABAN TERBARU DARI LOCALSTORAGE (FIX UTAMA)
+  const saved = localStorage.getItem("jawaban_ujian");
+  const jawabanFix = saved ? JSON.parse(saved) : {};
 
   const noPeserta = localStorage.getItem("no_peserta");
   if (!noPeserta || noPeserta === "null" || noPeserta === "undefined") {
@@ -312,7 +318,6 @@ async function handleAutoSubmit() {
     return;
   }
 
-   
   // ✅ 1. AMBIL SOAL
   const { data: soalDB, error: errSoal } = await supabase
     .from("bank_soal")
@@ -332,7 +337,7 @@ async function handleAutoSubmit() {
   let benarSoal = 0;
 
   const dataKirim = soalDB.map(item => {
-    const jwbRaw = jawaban[item.id];
+    const jwbRaw = jawabanFix[item.id]; // 🔥 pakai yang fix
 
     const userArr = normalizeAnswer(jwbRaw);
     const kunciArr = normalizeAnswer(item.kunci);
@@ -342,62 +347,52 @@ async function handleAutoSubmit() {
 
     let point = 0;
 
-    // 🔥 LOGIC YANG BENAR (WAJIB else if)
     if (userArr.length === 0) {
-  jumlahKosong++;
-  point = 0;
-} 
-else {
-
-  if (item.tipe === "pg" || item.tipe === "bs") {
-    // ✅ HARUS EXACT
-    if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
-      point = bobot;
-      benarSoal++;
+      jumlahKosong++;
+      point = 0;
     } else {
-      jumlahSalah++;
-    }
-  }
 
-  else if (item.tipe === "pgk") {
-    // ✅ PARSIAL (tanpa penalti)
-    let benarCount = 0;
-
-    kunciArr.forEach(k => {
-      if (userArr.includes(k)) {
-        benarCount++;
+      if (item.tipe === "pg" || item.tipe === "bs") {
+        if (JSON.stringify(userArr) === JSON.stringify(kunciArr)) {
+          point = bobot;
+          benarSoal++;
+        } else {
+          jumlahSalah++;
+        }
       }
-    });
 
-    point = benarCount; // 🔥 1 jawaban benar = 1 point
+      else if (item.tipe === "pgk") {
+        let benarCount = 0;
 
-    if (benarCount > 0) benarSoal++;
-    else jumlahSalah++;
-  }
+        kunciArr.forEach(k => {
+          if (userArr.includes(k)) benarCount++;
+        });
 
-  else if (item.tipe === "bs_kompleks") {
-    // ✅ PARSIAL BERDASARKAN INDEX
-    let benarCount = 0;
+        point = benarCount;
 
-    for (let i = 0; i < kunciArr.length; i++) {
-      if (userArr[i] === kunciArr[i]) {
-        benarCount++;
+        if (benarCount > 0) benarSoal++;
+        else jumlahSalah++;
+      }
+
+      else if (item.tipe === "bs_kompleks") {
+        let benarCount = 0;
+
+        for (let i = 0; i < kunciArr.length; i++) {
+          if (userArr[i] === kunciArr[i]) benarCount++;
+        }
+
+        point = benarCount;
+
+        if (benarCount > 0) benarSoal++;
+        else jumlahSalah++;
       }
     }
-
-    point = benarCount;
-
-    if (benarCount > 0) benarSoal++;
-    else jumlahSalah++;
-  }
-
-}
 
     return {
       no_peserta: noPeserta,
       id_soal: item.id,
       id_asesmen: Number(id),
-      jawaban: jwbRaw,
+      jawaban: jwbRaw ?? null, // 🔥 pastikan null kalau kosong
       point: point,
       sesi: sesi,
       ragu: false
@@ -405,13 +400,20 @@ else {
   });
 
   // ✅ 3. SIMPAN JAWABAN + POINT
-  await supabase
+  const { error: errJawaban } = await supabase
     .from("jawaban_peserta")
     .upsert(dataKirim, {
-      onConflict: "no_peserta,id_soal,id_asesmen",
+      onConflict: "no_peserta,id_soal,id_asesmen,sesi",
     });
 
-  // ✅ 4. HITUNG NILAI FINAL (PAKAI POINT)
+  if (errJawaban) {
+    console.log("❌ Gagal simpan jawaban:", errJawaban);
+    alert("Gagal simpan jawaban");
+    setSubmitting(false);
+    return;
+  }
+
+  // ✅ 4. HITUNG NILAI FINAL
   const totalPoint = dataKirim.reduce(
     (sum, item) => sum + (item.point || 0),
     0
@@ -423,32 +425,36 @@ else {
       : 0;
 
   // ✅ 5. SIMPAN LAPORAN
-  const { error: errInsert } = await supabase.from("laporan_ujian").upsert(
-    {
-      id_asesmen: Number(id),
-      no_peserta: String(noPeserta),
-      nilai: nilaiAkhir,                 // 🔥 dari point
-      jumlah_benar: totalPoint,          // 🔥 total bobot benar
-      jumlah_benar_soal: benarSoal,      // 🔥 jumlah soal benar
-      jumlah_salah: jumlahSalah,
-      jumlah_kosong: jumlahKosong,
-      status: isAuto ? "auto_submit" : "selesai",
-sesi: sesi, // 🔥 WAJIB
-      selesai_pada: new Date().toISOString(),
-    },
-    { onConflict: "no_peserta,id_asesmen" }
-  );
+  const { error: errInsert } = await supabase
+    .from("laporan_ujian")
+    .upsert(
+      {
+        id_asesmen: Number(id),
+        no_peserta: String(noPeserta),
+        nilai: nilaiAkhir,
+        jumlah_benar: totalPoint,
+        jumlah_benar_soal: benarSoal,
+        jumlah_salah: jumlahSalah,
+        jumlah_kosong: jumlahKosong,
+        status: isAuto ? "auto_submit" : "selesai",
+        sesi: sesi,
+        selesai_pada: new Date().toISOString(),
+      },
+      { onConflict: "no_peserta,id_asesmen,sesi" }
+    );
 
-  if (!errInsert) {
+  if (errInsert) {
+    console.log("❌ Gagal simpan laporan:", errInsert);
+    alert("Gagal simpan laporan");
+    setSubmitting(false);
+    return;
+  }
+
+  // ✅ 6. BERSIHIN
   localStorage.removeItem("jawaban_ujian");
-
-  // 🔥 TAMBAHKAN INI
   localStorage.removeItem("start_time_" + id);
 
   router.push(`/peserta/hasil?id=${id}`);
-} else {
-    alert("Gagal simpan laporan");
-  }
 
   setSubmitting(false);
 }
