@@ -92,10 +92,11 @@ useEffect(() => {
 
   // 🔥 2. AMBIL SEMUA LAPORAN (TANPA FILTER SESI)
   const { data: laporan, error: errLaporan } = await supabase
-    .from("laporan_ujian")
-    .select("*")
-    .eq("id_asesmen", selectedAsesmen)
-    .order("created_at", { ascending: false });
+  .from("laporan_ujian")
+  .select("*")
+  .eq("id_asesmen", selectedAsesmen)
+  .eq("sesi", sesi) // 🔥 INI KUNCI NYAWA
+  .order("created_at", { ascending: false });
 
   if (errLaporan) {
     console.error("Error laporan:", errLaporan);
@@ -312,9 +313,9 @@ useEffect(() => {
     setStatWarning(data.filter((p) => p.pelanggaran > 0).length);
   }
 
- useEffect(() => {
+useEffect(() => {
   loadPeserta();
-}, [selectedAsesmen]);
+}, [selectedAsesmen, sesi]); // ✅ TAMBAH SESI
 
   // ===============================
   // REALTIME UPDATE
