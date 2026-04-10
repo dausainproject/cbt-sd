@@ -148,38 +148,8 @@ useEffect(() => {
   setPeserta(result);
   hitungStat(result);
 }
+ 
 
-  // 🔥 SIMPAN STATUS TERBAIK PER PESERTA
-  const latestMap = new Map<string, any>();
-
-  laporan?.forEach((l) => {
-    const existing = latestMap.get(l.no_peserta);
-
-    if (!existing) {
-      latestMap.set(l.no_peserta, l);
-    } else {
-      // 🔥 PILIH STATUS PALING TINGGI
-      if (priority[l.status] > priority[existing.status]) {
-        latestMap.set(l.no_peserta, l);
-      }
-    }
-  });
-
-  // 🔥 GABUNGKAN DENGAN DATA SISWA
-  const result = siswa.map((s) => {
-    const lap = latestMap.get(s.no_peserta);
-
-    return {
-      no_peserta: s.no_peserta,
-      nama_lengkap: s.nama_lengkap,
-      status: lap?.status || "belum_login",
-      pelanggaran: lap?.pelanggaran || 0,
-    };
-  });
-
-  setPeserta(result);
-  hitungStat(result);
-}
   
   
   async function mulaiUjian() {
