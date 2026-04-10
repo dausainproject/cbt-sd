@@ -47,7 +47,7 @@ const [jenisSesi, setJenisSesi] = useState("utama");
 
 useEffect(() => {
   loadKonfigurasi();
-}, [selectedAsesmen, sesi]);
+}, [selectedAsesmen]);
 
   useEffect(() => {
   loadAsesmen();
@@ -74,33 +74,43 @@ useEffect(() => {
   // ===============================
 
   async function loadPeserta() {
-    const { data: siswa } = await supabase
-  .from("data_siswa")
-  .select("no_peserta,nama_lengkap")
-  .eq("status", true);
+  const { data: siswa } = await supabase
+    .from("data_siswa")
+    .select("no_peserta,nama_lengkap")
+    .eq("status", true);
 
-    if (!siswa) return;
+  if (!siswa) return;
 
-    const { data: laporan } = await supabase
-  .from("laporan_ujian")
-  .select("*")
-  .eq("id_asesmen", selectedAsesmen)
-  .eq("sesi", sesi);
+  // 🔥 ambil semua laporan TANPA filter sesi
+  const { data: laporan } = await supabase
+    .from("laporan_ujian")
+    .select("*")
+    .eq("id_asesmen", selectedAsesmen)
+    .order("created_at", { ascending: false });
 
-    const result = siswa.map((s) => {
-      const lap = laporan?.find((l) => l.no_peserta === s.no_peserta);
+  // 🔥 ambil data TERAKHIR tiap peserta
+  const latestMap = new Map();
 
-      return {
-        no_peserta: s.no_peserta,
-        nama_lengkap: s.nama_lengkap,
-        status: lap?.status || "belum_login",
-        pelanggaran: lap?.pelanggaran || 0,
-      };
-    });
+  laporan?.forEach((l) => {
+    if (!latestMap.has(l.no_peserta)) {
+      latestMap.set(l.no_peserta, l);
+    }
+  });
 
-    setPeserta(result);
-    hitungStat(result);
-  }
+  const result = siswa.map((s) => {
+    const lap = latestMap.get(s.no_peserta);
+
+    return {
+      no_peserta: s.no_peserta,
+      nama_lengkap: s.nama_lengkap,
+      status: lap?.status || "belum_login",
+      pelanggaran: lap?.pelanggaran || 0,
+    };
+  });
+
+  setPeserta(result);
+  hitungStat(result);
+}
   
   
   async function mulaiUjian() {
@@ -257,7 +267,7 @@ useEffect(() => {
 
  useEffect(() => {
   loadPeserta();
-}, [selectedAsesmen, sesi]);
+}, [selectedAsesmen]);
 
   // ===============================
   // REALTIME UPDATE
@@ -266,10 +276,7 @@ useEffect(() => {
 const handler = (payload: any) => {
   const newData = payload.new;
 
-  if (
-    newData?.id_asesmen === selectedAsesmen &&
-    newData?.sesi === sesi
-  ) {
+  if (newData?.id_asesmen === selectedAsesmen) {
     setPeserta((prev: Monitoring[]) => {
       const exists = prev.some(
         (p) => p.no_peserta === newData.no_peserta
@@ -292,7 +299,7 @@ const handler = (payload: any) => {
           ...prev,
           {
             no_peserta: newData.no_peserta,
-            nama_lengkap: "-", // aman dulu
+            nama_lengkap: "-",
             status: newData.status,
             pelanggaran: newData.pelanggaran,
           },
@@ -336,7 +343,7 @@ const handler = (payload: any) => {
   return () => {
     supabase.removeChannel(channel);
   };
-}, [selectedAsesmen, sesi]);
+}, [selectedAsesmen]);
 
   // ===============================
   // ===============================
@@ -379,11 +386,10 @@ async function generateToken() {
 
   async function resetPeserta(no: string) {
     await supabase
-      .from("laporan_ujian")
-      .delete()
-      .eq("no_peserta", no)
-      .eq("id_asesmen", selectedAsesmen)
-.eq("sesi", sesi);
+  .from("laporan_ujian")
+  .delete()
+  .eq("no_peserta", no)
+  .eq("id_asesmen", selectedAsesmen);
 
     loadPeserta();
   }
