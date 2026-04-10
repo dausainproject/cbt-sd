@@ -89,13 +89,26 @@ useEffect(() => {
     .order("created_at", { ascending: false });
 
   // 🔥 ambil data TERAKHIR tiap peserta
-  const latestMap = new Map();
+  const priority: any = {
+  sedang: 3,
+  selesai: 2,
+  auto_submit: 2,
+  belum_login: 1,
+};
 
-  laporan?.forEach((l) => {
-    if (!latestMap.has(l.no_peserta)) {
+const latestMap = new Map();
+
+laporan?.forEach((l) => {
+  const existing = latestMap.get(l.no_peserta);
+
+  if (!existing) {
+    latestMap.set(l.no_peserta, l);
+  } else {
+    if (priority[l.status] > priority[existing.status]) {
       latestMap.set(l.no_peserta, l);
     }
-  });
+  }
+});
 
   const result = siswa.map((s) => {
     const lap = latestMap.get(s.no_peserta);
