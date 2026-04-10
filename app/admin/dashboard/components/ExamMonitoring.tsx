@@ -208,21 +208,29 @@ async function stopUjian() {
     return;
   }
 
-  // 🔥 2. MATIKAN TOKEN DI DB
+  // 🔥 2. PAKSA SEMUA PESERTA YANG MASIH NGERJAIN → SELESAI
+  await supabase
+    .from("laporan_ujian")
+    .update({ status: "auto_submit" }) // 🔥 bisa ganti "selesai" kalau mau
+    .eq("id_asesmen", selectedAsesmen)
+    .eq("sesi", sesi)
+    .in("status", ["sedang"]);
+
+  // 🔥 3. MATIKAN TOKEN DI DB
   await supabase
     .from("token_ujian")
     .update({ status: false })
     .eq("id_asesmen", selectedAsesmen);
 
-  // 🔥 3. CLEAR TOKEN DI UI
+  // 🔥 4. CLEAR TOKEN DI UI
   setToken("");
 
-  // 🔥 4. MATIKAN STATE
+  // 🔥 5. MATIKAN STATE
   setUjianAktif(false);
 
   alert("Ujian dihentikan");
 
-  // 🔥 5. RELOAD DATA
+  // 🔥 6. RELOAD DATA
   loadPeserta();
 }
 
