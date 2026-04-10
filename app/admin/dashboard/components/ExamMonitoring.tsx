@@ -83,10 +83,13 @@ useEffect(() => {
 
   // 🔥 ambil semua laporan TANPA filter sesi
   const { data: laporan } = await supabase
-    .from("laporan_ujian")
-    .select("*")
-    .eq("id_asesmen", selectedAsesmen)
-    .order("created_at", { ascending: false });
+  .from("laporan_ujian")
+  .select("*")
+  .eq("id_asesmen", selectedAsesmen)
+  .eq("sesi", sesi) // 🔥 TAMBAH INI
+  .order("created_at", { ascending: false });
+  console.log("laporan:", laporan);
+console.log("sesi:", sesi);
 
   // 🔥 ambil data TERAKHIR tiap peserta
   const priority: any = {
