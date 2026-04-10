@@ -248,7 +248,7 @@ async function stopUjian() {
     .update({ status: "auto_submit" }) // 🔥 bisa ganti "selesai" kalau mau
     .eq("id_asesmen", selectedAsesmen)
     .eq("sesi", sesi)
-    .in("status", ["sedang"]);
+    
 
   // 🔥 3. MATIKAN TOKEN DI DB
   await supabase
@@ -334,7 +334,10 @@ useEffect(() => {
 const handler = (payload: any) => {
   const newData = payload.new;
 
-  if (newData?.id_asesmen === selectedAsesmen) {
+  if (
+  newData?.id_asesmen === selectedAsesmen &&
+  newData?.sesi === sesi // 🔥 INI KUNCI TERAKHIR
+) {
     setPeserta((prev: Monitoring[]) => {
       const exists = prev.some(
         (p) => p.no_peserta === newData.no_peserta
