@@ -288,9 +288,9 @@ useEffect(() => {
               prev.map((p) => [p.no_peserta, p.nama_lengkap])
             );
 
-            const existing = prev.find(
-              (p) => p.no_peserta === newData.no_peserta
-            );
+            const existing: Monitoring | undefined = prev.find(
+  (p) => p.no_peserta === newData.no_peserta
+);
 
             if (existing) {
               // ✅ update data lama
