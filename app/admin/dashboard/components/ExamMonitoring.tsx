@@ -271,17 +271,13 @@ const handler = (payload: any) => {
     newData?.sesi === sesi
   ) {
     setPeserta((prev: Monitoring[]) => {
-      let updated: Monitoring[];
-
-      const siswaMap = Object.fromEntries(
-        prev.map((p) => [p.no_peserta, p.nama_lengkap])
-      );
-
-      const existing = prev.find(
+      const exists = prev.some(
         (p) => p.no_peserta === newData.no_peserta
       );
 
-      if (existing) {
+      let updated: Monitoring[];
+
+      if (exists) {
         updated = prev.map((p) =>
           p.no_peserta === newData.no_peserta
             ? {
@@ -296,7 +292,7 @@ const handler = (payload: any) => {
           ...prev,
           {
             no_peserta: newData.no_peserta,
-            nama_lengkap: siswaMap[newData.no_peserta] || "-",
+            nama_lengkap: "-", // aman dulu
             status: newData.status,
             pelanggaran: newData.pelanggaran,
           },
@@ -312,7 +308,7 @@ const handler = (payload: any) => {
 
 
 
- useEffect(() => {
+  useEffect(() => {
   const channel = supabase
     .channel("monitoring")
     .on(
@@ -334,7 +330,7 @@ const handler = (payload: any) => {
       handler
     )
     .subscribe((status) => {
-      console.log("REALTIME:", status); // optional debug
+      console.log("REALTIME:", status);
     });
 
   return () => {
