@@ -306,16 +306,14 @@ useEffect(() => {
             } else {
               // ✅ tambah peserta baru dari realtime
               updated = [
-                ...prev,
-                {
-                  no_peserta: newData.no_peserta,
-                 nama_lengkap:
-  siswaMap[newData.no_peserta] ||
-  (existing ? existing.nama_lengkap : "-"),
-                  status: newData.status,
-                  pelanggaran: newData.pelanggaran,
-                },
-              ];
+  ...prev,
+  {
+    no_peserta: newData.no_peserta,
+    nama_lengkap: siswaMap[newData.no_peserta] || "-",
+    status: newData.status,
+    pelanggaran: newData.pelanggaran,
+  },
+];
             }
 
             // 🔥 update statistik
