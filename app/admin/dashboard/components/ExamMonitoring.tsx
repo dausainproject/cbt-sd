@@ -93,10 +93,9 @@ useEffect(() => {
     return;
   }
 
-  // 🔥 FIX: pastikan sesi NUMBER
   const sesiFix = Number(sesi);
 
-  // 🔥 2. AMBIL LAPORAN SESUAI SESI
+  // 🔥 2. AMBIL LAPORAN
   const { data: laporan, error: errLaporan } = await supabase
     .from("laporan_ujian")
     .select("*")
@@ -108,10 +107,7 @@ useEffect(() => {
     console.error("Error laporan:", errLaporan);
   }
 
-  console.log("🧪 sesi:", sesiFix);
-  console.log("🧪 laporan:", laporan?.length);
-
-  // 🔥 3. PRIORITAS STATUS
+  // 🔥 3. PRIORITAS STATUS (GLOBAL RULE)
   const priority: Record<string, number> = {
     sedang: 4,
     selesai: 3,
@@ -119,7 +115,7 @@ useEffect(() => {
     belum_login: 1,
   };
 
-  // 🔥 4. MAP STATUS TERBAIK
+  // 🔥 4. AMBIL STATUS TERBAIK PER PESERTA
   const latestMap = new Map<string, any>();
 
   (laporan || []).forEach((l) => {
@@ -133,26 +129,35 @@ useEffect(() => {
       const currentPriority = priority[l.status] || 0;
       const existingPriority = priority[existing.status] || 0;
 
+      // 🔥 AMBIL YANG PALING "KUAT"
       if (currentPriority >= existingPriority) {
         latestMap.set(l.no_peserta, l);
       }
     }
   });
 
-  // 🔥 5. GABUNG DATA
+  // 🔥 5. GABUNG KE SEMUA SISWA
   const result: Monitoring[] = siswa.map((s) => {
     const lap = latestMap.get(s.no_peserta);
 
-    // 🔥 FIX: kalau gak ada laporan, jangan langsung anggap belum login
+    // ❌ BELUM ADA DATA
     if (!lap) {
-  return {
-    no_peserta: s.no_peserta,
-    nama_lengkap: s.nama_lengkap,
-    status: ujianAktif ? "belum_login" : "selesai", // 🔥 WAJIB
-    pelanggaran: 0,
-  };
-}
+      let statusDefault = "belum_login";
 
+      // 🔥 kalau ujian sudah selesai → anggap selesai
+      if (!ujianAktif && laporan && laporan.length > 0) {
+        statusDefault = "selesai";
+      }
+
+      return {
+        no_peserta: s.no_peserta,
+        nama_lengkap: s.nama_lengkap,
+        status: statusDefault,
+        pelanggaran: 0,
+      };
+    }
+
+    // ✅ ADA DATA
     return {
       no_peserta: s.no_peserta,
       nama_lengkap: s.nama_lengkap,
@@ -161,10 +166,10 @@ useEffect(() => {
     };
   });
 
+  // 🔥 6. UPDATE UI (WAJIB)
   setPeserta(result);
   hitungStat(result);
 }
- 
 
   
   
