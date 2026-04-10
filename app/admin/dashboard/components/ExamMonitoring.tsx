@@ -74,45 +74,98 @@ useEffect(() => {
   // ===============================
 
   async function loadPeserta() {
-  const { data: siswa } = await supabase
+  // 🔥 1. AMBIL DATA SISWA
+  const { data: siswa, error: errSiswa } = await supabase
     .from("data_siswa")
     .select("no_peserta,nama_lengkap")
     .eq("status", true);
 
-  if (!siswa) return;
-
-  // 🔥 ambil semua laporan TANPA filter sesi
-  const { data: laporan } = await supabase
-  .from("laporan_ujian")
-  .select("*")
-  .eq("id_asesmen", selectedAsesmen)
-  .eq("sesi", sesi) // 🔥 TAMBAH INI
-  .order("created_at", { ascending: false });
-  console.log("laporan:", laporan);
-console.log("sesi:", sesi);
-
-  // 🔥 ambil data TERAKHIR tiap peserta
-  const priority: any = {
-  sedang: 3,
-  selesai: 2,
-  auto_submit: 2,
-  belum_login: 1,
-};
-
-const latestMap = new Map();
-
-laporan?.forEach((l) => {
-  const existing = latestMap.get(l.no_peserta);
-
-  if (!existing) {
-    latestMap.set(l.no_peserta, l);
-  } else {
-    if (priority[l.status] > priority[existing.status]) {
-      latestMap.set(l.no_peserta, l);
-    }
+  if (errSiswa) {
+    console.error("Error siswa:", errSiswa);
+    return;
   }
-});
 
+  if (!siswa || siswa.length === 0) {
+    setPeserta([]);
+    return;
+  }
+
+  // 🔥 2. AMBIL SEMUA LAPORAN (TANPA FILTER SESI)
+  const { data: laporan, error: errLaporan } = await supabase
+    .from("laporan_ujian")
+    .select("*")
+    .eq("id_asesmen", selectedAsesmen)
+    .order("created_at", { ascending: false });
+
+  if (errLaporan) {
+    console.error("Error laporan:", errLaporan);
+  }
+
+  console.log("laporan:", laporan);
+  console.log("sesi aktif:", sesi);
+
+  // 🔥 3. PRIORITAS STATUS
+  const priority: Record<string, number> = {
+    sedang: 4,
+    selesai: 3,
+    auto_submit: 3,
+    belum_login: 1,
+  };
+
+  // 🔥 4. AMBIL STATUS TERBAIK PER PESERTA
+  const latestMap = new Map<string, any>();
+
+  (laporan || []).forEach((l) => {
+    if (!l?.no_peserta) return;
+
+    const existing = latestMap.get(l.no_peserta);
+
+    if (!existing) {
+      latestMap.set(l.no_peserta, l);
+    } else {
+      const currentPriority = priority[l.status] || 0;
+      const existingPriority = priority[existing.status] || 0;
+
+      if (currentPriority > existingPriority) {
+        latestMap.set(l.no_peserta, l);
+      }
+    }
+  });
+
+  // 🔥 5. GABUNG DATA SISWA + STATUS
+  const result: Monitoring[] = siswa.map((s) => {
+    const lap = latestMap.get(s.no_peserta);
+
+    return {
+      no_peserta: s.no_peserta,
+      nama_lengkap: s.nama_lengkap,
+      status: lap?.status || "belum_login",
+      pelanggaran: lap?.pelanggaran ?? 0,
+    };
+  });
+
+  // 🔥 6. SET STATE
+  setPeserta(result);
+  hitungStat(result);
+}
+
+  // 🔥 SIMPAN STATUS TERBAIK PER PESERTA
+  const latestMap = new Map<string, any>();
+
+  laporan?.forEach((l) => {
+    const existing = latestMap.get(l.no_peserta);
+
+    if (!existing) {
+      latestMap.set(l.no_peserta, l);
+    } else {
+      // 🔥 PILIH STATUS PALING TINGGI
+      if (priority[l.status] > priority[existing.status]) {
+        latestMap.set(l.no_peserta, l);
+      }
+    }
+  });
+
+  // 🔥 GABUNGKAN DENGAN DATA SISWA
   const result = siswa.map((s) => {
     const lap = latestMap.get(s.no_peserta);
 
