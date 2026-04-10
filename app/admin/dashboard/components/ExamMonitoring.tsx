@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -137,12 +138,21 @@ useEffect(() => {
   const result: Monitoring[] = siswa.map((s) => {
     const lap = latestMap.get(s.no_peserta);
 
-    return {
-      no_peserta: s.no_peserta,
-      nama_lengkap: s.nama_lengkap,
-      status: lap?.status || "belum_login",
-      pelanggaran: lap?.pelanggaran ?? 0,
-    };
+if (!lap) {
+  return {
+    no_peserta: s.no_peserta,
+    nama_lengkap: s.nama_lengkap,
+    status: "belum_login",
+    pelanggaran: 0,
+  };
+}
+
+return {
+  no_peserta: s.no_peserta,
+  nama_lengkap: s.nama_lengkap,
+  status: lap.status,
+  pelanggaran: lap.pelanggaran ?? 0,
+};
   });
 
   // 🔥 6. SET STATE
