@@ -263,16 +263,76 @@ useEffect(() => {
   // REALTIME UPDATE
   // ===============================
 
+const handler = (payload: any) => {
+  const newData = payload.new;
+
+  if (
+    newData?.id_asesmen === selectedAsesmen &&
+    newData?.sesi === sesi
+  ) {
+    setPeserta((prev: Monitoring[]) => {
+      let updated: Monitoring[];
+
+      const siswaMap = Object.fromEntries(
+        prev.map((p) => [p.no_peserta, p.nama_lengkap])
+      );
+
+      const existing = prev.find(
+        (p) => p.no_peserta === newData.no_peserta
+      );
+
+      if (existing) {
+        updated = prev.map((p) =>
+          p.no_peserta === newData.no_peserta
+            ? {
+                ...p,
+                status: newData.status,
+                pelanggaran: newData.pelanggaran,
+              }
+            : p
+        );
+      } else {
+        updated = [
+          ...prev,
+          {
+            no_peserta: newData.no_peserta,
+            nama_lengkap: siswaMap[newData.no_peserta] || "-",
+            status: newData.status,
+            pelanggaran: newData.pelanggaran,
+          },
+        ];
+      }
+
+      hitungStat(updated);
+      return updated;
+    });
+  }
+};
+
+
+
+
   useEffect(() => {
   const channel = supabase
     .channel("monitoring")
     .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "laporan_ujian",
-      },
+  "postgres_changes",
+  {
+    event: "INSERT",
+    schema: "public",
+    table: "laporan_ujian",
+  },
+  handler
+)
+.on(
+  "postgres_changes",
+  {
+    event: "UPDATE",
+    schema: "public",
+    table: "laporan_ujian",
+  },
+  handler
+)
       (payload) => {
         const newData = payload.new as any;
 
