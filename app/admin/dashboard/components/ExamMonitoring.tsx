@@ -280,14 +280,20 @@ useEffect(() => {
           newData?.id_asesmen === selectedAsesmen &&
           newData?.sesi === sesi
         ) {
-          setPeserta((prev) => {
-            let updated;
+          setPeserta((prev: Monitoring[]) => {
+            let updated: Monitoring[];
+
+            // 🔥 mapping nama biar gak hilang
+            const siswaMap = Object.fromEntries(
+              prev.map((p) => [p.no_peserta, p.nama_lengkap])
+            );
 
             const existing = prev.find(
               (p) => p.no_peserta === newData.no_peserta
             );
 
             if (existing) {
+              // ✅ update data lama
               updated = prev.map((p) =>
                 p.no_peserta === newData.no_peserta
                   ? {
@@ -298,18 +304,22 @@ useEffect(() => {
                   : p
               );
             } else {
-  updated = [
-    ...prev,
-    {
-      no_peserta: newData.no_peserta,
-      nama_lengkap: existing?.nama_lengkap || "-", // ✅ FIX
-      status: newData.status,
-      pelanggaran: newData.pelanggaran,
-    },
-  ];
-}
+              // ✅ tambah peserta baru dari realtime
+              updated = [
+                ...prev,
+                {
+                  no_peserta: newData.no_peserta,
+                  nama_lengkap:
+                    siswaMap[newData.no_peserta] ||
+                    existing?.nama_lengkap ||
+                    "-",
+                  status: newData.status,
+                  pelanggaran: newData.pelanggaran,
+                },
+              ];
+            }
 
-            // 🔥 WAJIB: update statistik juga
+            // 🔥 update statistik
             hitungStat(updated);
 
             return updated;
