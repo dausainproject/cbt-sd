@@ -288,9 +288,9 @@ useEffect(() => {
               prev.map((p) => [p.no_peserta, p.nama_lengkap])
             );
 
-            const existing: Monitoring | undefined = prev.find(
+            const existing = prev.find(
   (p) => p.no_peserta === newData.no_peserta
-);
+) as Monitoring | undefined;
 
             if (existing) {
               // ✅ update data lama
@@ -309,10 +309,9 @@ useEffect(() => {
                 ...prev,
                 {
                   no_peserta: newData.no_peserta,
-                  nama_lengkap:
-                    siswaMap[newData.no_peserta] ||
-                    existing?.nama_lengkap ||
-                    "-",
+                 nama_lengkap:
+  siswaMap[newData.no_peserta] ||
+  (existing ? existing.nama_lengkap : "-"),
                   status: newData.status,
                   pelanggaran: newData.pelanggaran,
                 },
