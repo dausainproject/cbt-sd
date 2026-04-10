@@ -145,13 +145,13 @@ useEffect(() => {
 
     // 🔥 FIX: kalau gak ada laporan, jangan langsung anggap belum login
     if (!lap) {
-      return {
-        no_peserta: s.no_peserta,
-        nama_lengkap: s.nama_lengkap,
-        status: "belum_login",
-        pelanggaran: 0,
-      };
-    }
+  return {
+    no_peserta: s.no_peserta,
+    nama_lengkap: s.nama_lengkap,
+    status: ujianAktif ? "belum_login" : "selesai", // 🔥 WAJIB
+    pelanggaran: 0,
+  };
+}
 
     return {
       no_peserta: s.no_peserta,
@@ -249,12 +249,13 @@ async function stopUjian() {
     return;
   }
 
-  // 🔥 2. FORCE SEMUA PESERTA → AUTO SUBMIT
-  const { error: errUpdate } = await supabase
-    .from("laporan_ujian")
-    .update({ status: "auto_submit" })
-    .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", sesiFix);
+  // 🔥 2. FORCE SEMUA PESERTA → AUTO SUBMIT (AMAN)
+const { error: errUpdate } = await supabase
+  .from("laporan_ujian")
+  .update({ status: "auto_submit" })
+  .eq("id_asesmen", selectedAsesmen)
+  .eq("sesi", sesiFix)
+  .neq("status", "selesai"); // 🔥 biar gak nabrak yg udah selesai
 
   if (errUpdate) {
     console.log("Error update laporan:", errUpdate);
@@ -273,9 +274,7 @@ async function stopUjian() {
   alert("Ujian dihentikan");
 
   // 🔥 5. DELAY BIAR DATA MASUK DULU (ANTI BALIK KE BELUM_LOGIN)
-  setTimeout(() => {
-    loadPeserta();
-  }, 500);
+  await loadPeserta();
 }
 
 async function loadKonfigurasi() {
