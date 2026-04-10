@@ -185,7 +185,7 @@ useEffect(() => {
     .from("ujian_aktif")
     .select("*")
     .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", sesi)
+    .eq("sesi", Number(sesi))
     .maybeSingle();
 
   let error;
@@ -200,7 +200,7 @@ useEffect(() => {
         jenis_sesi: jenisSesi
       })
       .eq("id_asesmen", selectedAsesmen)
-      .eq("sesi", sesi);
+      .eq("sesi", Number(sesi));
 
     error = res.error;
   } else {
@@ -285,7 +285,7 @@ async function loadKonfigurasi() {
     .from("ujian_aktif")
     .select("*")
     .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", sesi)
+    .eq("sesi", Number(sesi))
     .maybeSingle();
 
   if (data) {
@@ -345,9 +345,9 @@ const handler = (payload: any) => {
   const newData = payload.new;
 
   if (
-  newData?.id_asesmen === selectedAsesmen &&
-  newData?.sesi === sesi // 🔥 INI KUNCI TERAKHIR
-) {
+    newData?.id_asesmen === selectedAsesmen &&
+    Number(newData?.sesi) === Number(sesi) // 🔥 FIX DISINI
+  ) {
     setPeserta((prev: Monitoring[]) => {
       const exists = prev.some(
         (p) => p.no_peserta === newData.no_peserta
