@@ -75,6 +75,8 @@ useEffect(() => {
   // ===============================
 
   async function loadPeserta() {
+  if (!selectedAsesmen) return;
+
   // 🔥 1. AMBIL DATA SISWA
   const { data: siswa, error: errSiswa } = await supabase
     .from("data_siswa")
@@ -91,20 +93,23 @@ useEffect(() => {
     return;
   }
 
-  // 🔥 2. AMBIL SEMUA LAPORAN (TANPA FILTER SESI)
+  // 🔥 FIX: pastikan sesi NUMBER
+  const sesiFix = Number(sesi);
+
+  // 🔥 2. AMBIL LAPORAN SESUAI SESI
   const { data: laporan, error: errLaporan } = await supabase
-  .from("laporan_ujian")
-  .select("*")
-  .eq("id_asesmen", selectedAsesmen)
-  .eq("sesi", sesi) // 🔥 INI KUNCI NYAWA
-  .order("created_at", { ascending: false });
+    .from("laporan_ujian")
+    .select("*")
+    .eq("id_asesmen", selectedAsesmen)
+    .eq("sesi", sesiFix)
+    .order("created_at", { ascending: false });
 
   if (errLaporan) {
     console.error("Error laporan:", errLaporan);
   }
 
-  console.log("laporan:", laporan);
-  console.log("sesi aktif:", sesi);
+  console.log("🧪 sesi:", sesiFix);
+  console.log("🧪 laporan:", laporan?.length);
 
   // 🔥 3. PRIORITAS STATUS
   const priority: Record<string, number> = {
@@ -114,7 +119,7 @@ useEffect(() => {
     belum_login: 1,
   };
 
-  // 🔥 4. AMBIL STATUS TERBAIK PER PESERTA
+  // 🔥 4. MAP STATUS TERBAIK
   const latestMap = new Map<string, any>();
 
   (laporan || []).forEach((l) => {
@@ -128,34 +133,34 @@ useEffect(() => {
       const currentPriority = priority[l.status] || 0;
       const existingPriority = priority[existing.status] || 0;
 
-      if (currentPriority > existingPriority) {
+      if (currentPriority >= existingPriority) {
         latestMap.set(l.no_peserta, l);
       }
     }
   });
 
-  // 🔥 5. GABUNG DATA SISWA + STATUS
+  // 🔥 5. GABUNG DATA
   const result: Monitoring[] = siswa.map((s) => {
     const lap = latestMap.get(s.no_peserta);
 
-if (!lap) {
-  return {
-    no_peserta: s.no_peserta,
-    nama_lengkap: s.nama_lengkap,
-    status: "belum_login",
-    pelanggaran: 0,
-  };
-}
+    // 🔥 FIX: kalau gak ada laporan, jangan langsung anggap belum login
+    if (!lap) {
+      return {
+        no_peserta: s.no_peserta,
+        nama_lengkap: s.nama_lengkap,
+        status: "belum_login",
+        pelanggaran: 0,
+      };
+    }
 
-return {
-  no_peserta: s.no_peserta,
-  nama_lengkap: s.nama_lengkap,
-  status: lap.status,
-  pelanggaran: lap.pelanggaran ?? 0,
-};
+    return {
+      no_peserta: s.no_peserta,
+      nama_lengkap: s.nama_lengkap,
+      status: lap.status,
+      pelanggaran: lap.pelanggaran ?? 0,
+    };
   });
 
-  // 🔥 6. SET STATE
   setPeserta(result);
   hitungStat(result);
 }
@@ -227,14 +232,16 @@ return {
 async function stopUjian() {
   if (!selectedAsesmen) return;
 
+  const sesiFix = Number(sesi); // 🔥 pastikan konsisten
+
   // 🔥 1. MATIKAN UJIAN
   const { error } = await supabase
     .from("ujian_aktif")
     .update({
-      status: "selesai"
+      status: "selesai",
     })
     .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", sesi);
+    .eq("sesi", sesiFix);
 
   if (error) {
     console.log(error);
@@ -242,30 +249,33 @@ async function stopUjian() {
     return;
   }
 
-  // 🔥 2. PAKSA SEMUA PESERTA YANG MASIH NGERJAIN → SELESAI
-  await supabase
+  // 🔥 2. FORCE SEMUA PESERTA → AUTO SUBMIT
+  const { error: errUpdate } = await supabase
     .from("laporan_ujian")
-    .update({ status: "auto_submit" }) // 🔥 bisa ganti "selesai" kalau mau
+    .update({ status: "auto_submit" })
     .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", sesi)
-    
+    .eq("sesi", sesiFix);
 
-  // 🔥 3. MATIKAN TOKEN DI DB
+  if (errUpdate) {
+    console.log("Error update laporan:", errUpdate);
+  }
+
+  // 🔥 3. MATIKAN TOKEN
   await supabase
     .from("token_ujian")
     .update({ status: false })
     .eq("id_asesmen", selectedAsesmen);
 
-  // 🔥 4. CLEAR TOKEN DI UI
+  // 🔥 4. RESET UI STATE
   setToken("");
-
-  // 🔥 5. MATIKAN STATE
   setUjianAktif(false);
 
   alert("Ujian dihentikan");
 
-  // 🔥 6. RELOAD DATA
-  loadPeserta();
+  // 🔥 5. DELAY BIAR DATA MASUK DULU (ANTI BALIK KE BELUM_LOGIN)
+  setTimeout(() => {
+    loadPeserta();
+  }, 500);
 }
 
 async function loadKonfigurasi() {
