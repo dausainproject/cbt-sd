@@ -70,11 +70,7 @@ useEffect(() => {
   }
 }
 
-  // ===============================
-  // LOAD PESERTA
-  // ===============================
-
-  async function loadPeserta() {
+ async function loadPeserta() {
   if (!selectedAsesmen) return;
 
   // 🔥 1. AMBIL DATA SISWA
@@ -107,7 +103,13 @@ useEffect(() => {
     console.error("Error laporan:", errLaporan);
   }
 
- 
+  // 🔥 3. PRIORITY STATUS (WAJIB ADA DI SINI BIAR AMAN)
+  const priority: Record<string, number> = {
+    sedang: 4,
+    selesai: 3,
+    auto_submit: 3,
+    belum_login: 1,
+  };
 
   // 🔥 4. AMBIL STATUS TERBAIK PER PESERTA
   const latestMap = new Map<string, any>();
@@ -123,23 +125,22 @@ useEffect(() => {
       const currentPriority = priority[l.status] || 0;
       const existingPriority = priority[existing.status] || 0;
 
-      // 🔥 AMBIL YANG PALING "KUAT"
+      // 🔥 AMBIL STATUS PALING KUAT
       if (currentPriority >= existingPriority) {
         latestMap.set(l.no_peserta, l);
       }
     }
   });
 
-  // 🔥 5. GABUNG KE SEMUA SISWA
+  // 🔥 5. GABUNG KE SISWA
   const result: Monitoring[] = siswa.map((s) => {
     const lap = latestMap.get(s.no_peserta);
 
-    // ❌ BELUM ADA DATA
     if (!lap) {
       let statusDefault = "belum_login";
 
-      // 🔥 kalau ujian sudah selesai → anggap selesai
-      if (!ujianAktif && laporan && laporan.length > 0) {
+      // 🔥 FIX: kalau ada riwayat & ujian sudah stop → anggap selesai
+      if (!ujianAktif && (laporan?.length || 0) > 0) {
         statusDefault = "selesai";
       }
 
@@ -151,7 +152,6 @@ useEffect(() => {
       };
     }
 
-    // ✅ ADA DATA
     return {
       no_peserta: s.no_peserta,
       nama_lengkap: s.nama_lengkap,
@@ -160,7 +160,7 @@ useEffect(() => {
     };
   });
 
-  // 🔥 6. UPDATE UI (WAJIB)
+  // 🔥 6. UPDATE UI
   setPeserta(result);
   hitungStat(result);
 }
@@ -390,24 +390,15 @@ const handler = (payload: any) => {
 
 
   useEffect(() => {
- const channel = supabase
-  .channel("monitoring")
-  .on(
-    "postgres_changes",
-    {
-      event: "*",
-      schema: "public",
-      table: "laporan_ujian",
-      filter: `id_asesmen=eq.${selectedAsesmen} AND sesi=eq.${sesi}`
-    },
-    handler
-  )
+  const channel = supabase
+    .channel("monitoring")
     .on(
       "postgres_changes",
       {
-        event: "UPDATE",
+        event: "*",
         schema: "public",
         table: "laporan_ujian",
+        filter: `id_asesmen=eq.${selectedAsesmen} AND sesi=eq.${sesi}`
       },
       handler
     )
@@ -418,7 +409,7 @@ const handler = (payload: any) => {
   return () => {
     supabase.removeChannel(channel);
   };
-}, [selectedAsesmen]);
+}, [selectedAsesmen, sesi]); // 🔥 TAMBAH sesi disini
 
   // ===============================
   // ===============================
