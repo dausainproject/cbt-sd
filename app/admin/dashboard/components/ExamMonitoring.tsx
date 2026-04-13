@@ -345,8 +345,8 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, [selectedAsesmen, sesi]);
   // ===============================
-  // REALTIME UPDATE
-  // ===============================
+// REALTIME UPDATE
+// ===============================
 
 const priority: Record<string, number> = {
   sedang: 4,
@@ -355,60 +355,35 @@ const priority: Record<string, number> = {
   belum_login: 1,
 };
 
-const handler = (payload: any) => {
-  const newData = payload.new;
-
-  console.log("REALTIME MASUK:", newData); // 🔥 TARO DISINI
-
-  if (
-    newData?.id_asesmen === selectedAsesmen &&
-    Number(newData?.sesi) === Number(sesi)
-  ) {
-    setPeserta((prev: Monitoring[]) => {
-      return prev.map((p) => {
-        if (p.no_peserta !== newData.no_peserta) return p;
-
-        const currentPriority = priority[newData.status] || 0;
-        const existingPriority = priority[p.status] || 0;
-
-        // 🔥 hanya update kalau lebih kuat
-        if (currentPriority >= existingPriority) {
-          return {
-            ...p,
-            status: newData.status,
-            pelanggaran: newData.pelanggaran,
-          };
-        }
-
-        return p;
-      });
-    });
-  }
+// 🔥 TYPE FIX
+type LaporanRealtime = {
+  no_peserta: string;
+  status: string;
+  pelanggaran: number;
+  sesi: number;
+  id_asesmen: number;
 };
-
-
-
-
-  useEffect(() => {
+useEffect(() => {
   if (!selectedAsesmen) return;
 
   const channel = supabase
-    .channel("monitoring-" + selectedAsesmen + "-" + sesi) // 🔥 unik biar gak tabrakan
+    .channel("monitoring-" + selectedAsesmen + "-" + sesi)
     .on(
       "postgres_changes",
       {
         event: "*",
         schema: "public",
         table: "laporan_ujian",
-        filter: `id_asesmen=eq.${selectedAsesmen}`, // ❌ JANGAN pakai AND
+        filter: `id_asesmen=eq.${selectedAsesmen}`,
       },
       (payload) => {
-        const newData = payload.new;
+        const newData = payload.new as LaporanRealtime;
+        if (!newData) return;
 
         console.log("🔥 REALTIME MASUK:", newData);
 
-        // 🔥 FILTER MANUAL SESI DI SINI
-        if (Number(newData?.sesi) !== Number(sesi)) return;
+        // 🔥 FILTER SESI
+        if (Number(newData.sesi) !== Number(sesi)) return;
 
         setPeserta((prev: Monitoring[]) => {
           return prev.map((p) => {
@@ -438,6 +413,8 @@ const handler = (payload: any) => {
     supabase.removeChannel(channel);
   };
 }, [selectedAsesmen, sesi]);
+
+  
 
   // ===============================
   // ===============================
