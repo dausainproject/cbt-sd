@@ -107,13 +107,7 @@ useEffect(() => {
     console.error("Error laporan:", errLaporan);
   }
 
-  // 🔥 3. PRIORITAS STATUS (GLOBAL RULE)
-  const priority: Record<string, number> = {
-    sedang: 4,
-    selesai: 3,
-    auto_submit: 3,
-    belum_login: 1,
-  };
+ 
 
   // 🔥 4. AMBIL STATUS TERBAIK PER PESERTA
   const latestMap = new Map<string, any>();
@@ -341,48 +335,53 @@ useEffect(() => {
   loadPeserta();
 }, [selectedAsesmen, sesi]); // ✅ TAMBAH SESI
 
+useEffect(() => {
+  if (!selectedAsesmen) return;
+
+  const interval = setInterval(() => {
+    loadPeserta();
+  }, 5000); // tiap 5 detik
+
+  return () => clearInterval(interval);
+}, [selectedAsesmen, sesi]);
   // ===============================
   // REALTIME UPDATE
   // ===============================
 
+const priority: Record<string, number> = {
+  sedang: 4,
+  selesai: 3,
+  auto_submit: 3,
+  belum_login: 1,
+};
+
 const handler = (payload: any) => {
   const newData = payload.new;
 
+  console.log("REALTIME MASUK:", newData); // 🔥 TARO DISINI
+
   if (
     newData?.id_asesmen === selectedAsesmen &&
-    Number(newData?.sesi) === Number(sesi) // 🔥 FIX DISINI
+    Number(newData?.sesi) === Number(sesi)
   ) {
     setPeserta((prev: Monitoring[]) => {
-      const exists = prev.some(
-        (p) => p.no_peserta === newData.no_peserta
-      );
+      return prev.map((p) => {
+        if (p.no_peserta !== newData.no_peserta) return p;
 
-      let updated: Monitoring[];
+        const currentPriority = priority[newData.status] || 0;
+        const existingPriority = priority[p.status] || 0;
 
-      if (exists) {
-        updated = prev.map((p) =>
-          p.no_peserta === newData.no_peserta
-            ? {
-                ...p,
-                status: newData.status,
-                pelanggaran: newData.pelanggaran,
-              }
-            : p
-        );
-      } else {
-        updated = [
-          ...prev,
-          {
-            no_peserta: newData.no_peserta,
-            nama_lengkap: "-",
+        // 🔥 hanya update kalau lebih kuat
+        if (currentPriority >= existingPriority) {
+          return {
+            ...p,
             status: newData.status,
             pelanggaran: newData.pelanggaran,
-          },
-        ];
-      }
+          };
+        }
 
-      hitungStat(updated);
-      return updated;
+        return p;
+      });
     });
   }
 };
@@ -391,17 +390,18 @@ const handler = (payload: any) => {
 
 
   useEffect(() => {
-  const channel = supabase
-    .channel("monitoring")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "laporan_ujian",
-      },
-      handler
-    )
+ const channel = supabase
+  .channel("monitoring")
+  .on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "laporan_ujian",
+      filter: `id_asesmen=eq.${selectedAsesmen} AND sesi=eq.${sesi}`
+    },
+    handler
+  )
     .on(
       "postgres_changes",
       {
