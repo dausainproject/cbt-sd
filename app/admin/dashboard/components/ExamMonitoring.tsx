@@ -390,26 +390,54 @@ const handler = (payload: any) => {
 
 
   useEffect(() => {
+  if (!selectedAsesmen) return;
+
   const channel = supabase
-    .channel("monitoring")
+    .channel("monitoring-" + selectedAsesmen + "-" + sesi) // 🔥 unik biar gak tabrakan
     .on(
       "postgres_changes",
       {
         event: "*",
         schema: "public",
         table: "laporan_ujian",
-        filter: `id_asesmen=eq.${selectedAsesmen} AND sesi=eq.${sesi}`
+        filter: `id_asesmen=eq.${selectedAsesmen}`, // ❌ JANGAN pakai AND
       },
-      handler
+      (payload) => {
+        const newData = payload.new;
+
+        console.log("🔥 REALTIME MASUK:", newData);
+
+        // 🔥 FILTER MANUAL SESI DI SINI
+        if (Number(newData?.sesi) !== Number(sesi)) return;
+
+        setPeserta((prev: Monitoring[]) => {
+          return prev.map((p) => {
+            if (p.no_peserta !== newData.no_peserta) return p;
+
+            const currentPriority = priority[newData.status] || 0;
+            const existingPriority = priority[p.status] || 0;
+
+            if (currentPriority >= existingPriority) {
+              return {
+                ...p,
+                status: newData.status,
+                pelanggaran: newData.pelanggaran ?? 0,
+              };
+            }
+
+            return p;
+          });
+        });
+      }
     )
     .subscribe((status) => {
-      console.log("REALTIME:", status);
+      console.log("📡 REALTIME STATUS:", status);
     });
 
   return () => {
     supabase.removeChannel(channel);
   };
-}, [selectedAsesmen, sesi]); // 🔥 TAMBAH sesi disini
+}, [selectedAsesmen, sesi]);
 
   // ===============================
   // ===============================
