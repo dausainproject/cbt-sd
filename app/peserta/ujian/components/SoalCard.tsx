@@ -5,6 +5,7 @@ type Soal = {
   pertanyaan: string;
   tipe: "pg" | "pgk" | "bs" | "bs_kompleks";
   pilihan?: string[];
+  gambar?: string | null; // 🔥 TAMBAH INI
 };
 
 type Props = {
@@ -18,9 +19,23 @@ export default function SoalCard({ soal, value, onChange }: Props) {
   return (
     <div>
 
-      <div className="mb-6 text-lg">
-        {soal.pertanyaan}
-      </div>
+      <div className="mb-6">
+
+  {/* 🔥 GAMBAR */}
+  {soal.gambar && (
+  <img
+    src={soal.gambar}
+    alt="gambar soal"
+    className="max-h-[300px] object-contain mb-4 rounded border"
+  />
+)}
+
+  {/* 🔥 PERTANYAAN */}
+  <div className="text-lg">
+    {soal.pertanyaan}
+  </div>
+
+</div>
 
       {soal.tipe === "pg" && <SoalPG soal={soal} value={value} onChange={onChange} />}
 {soal.tipe === "pgk" && <SoalPGK soal={soal} value={value} onChange={onChange} />}
