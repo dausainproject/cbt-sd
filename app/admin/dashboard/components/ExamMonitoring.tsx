@@ -386,7 +386,7 @@ useEffect(() => {
   if (!selectedAsesmen) return;
 
   const channel = supabase
-    .channel("monitoring-" + selectedAsesmen + "-" + sesi)
+    .channel(`monitoring-${selectedAsesmen}-${sesi}`)
     .on(
       "postgres_changes",
       {
@@ -399,50 +399,34 @@ useEffect(() => {
         const newData = payload.new as LaporanRealtime;
         if (!newData) return;
 
-        console.log("🔥 REALTIME MASUK:", newData);
-
-        // 🔥 FILTER SESI
         if (Number(newData.sesi) !== Number(sesi)) return;
 
-        setPeserta((prev: Monitoring[]) => {
-  const updated = prev.map((p) => {
-    if (p.no_peserta !== newData.no_peserta) return p;
+        setPeserta((prev) => {
+          const updated = prev.map((p) => {
+            if (p.no_peserta !== newData.no_peserta) return p;
 
-    // 🔒 KUNCI: kalau sudah selesai, jangan bisa berubah lagi
-    if (p.status === "selesai" || p.status === "auto_submit") {
-      return p;
-    }
+            const currentPriority = priority[newData.status] || 0;
+            const existingPriority = priority[p.status] || 0;
 
-    const currentPriority = priority[newData.status] || 0;
-    const existingPriority = priority[p.status] || 0;
+            if (currentPriority >= existingPriority) {
+              return {
+                ...p,
+                status: newData.status,
+                pelanggaran: newData.pelanggaran ?? 0,
+              };
+            }
 
-    if (currentPriority >= existingPriority) {
-      return {
-        ...p,
-        status: newData.status,
-        pelanggaran: newData.pelanggaran ?? 0,
-      };
-    }
+            return p;
+          });
 
-    return p;
-  });
+          // 🔥 UPDATE STAT LANGSUNG (INI YANG BIKIN GAK PERLU RELOAD)
+          hitungStat(updated);
 
-  // 🔥 WAJIB biar statistik ikut update
-  hitungStat(updated);
-
-  return updated;
-});
-
-  // 🔥 WAJIB
-  hitungStat(updated);
-
-  return updated;
-});
+          return updated;
+        });
       }
     )
-    .subscribe((status) => {
-      console.log("📡 REALTIME STATUS:", status);
-    });
+    .subscribe();
 
   return () => {
     supabase.removeChannel(channel);
