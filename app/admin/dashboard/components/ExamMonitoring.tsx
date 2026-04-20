@@ -139,10 +139,8 @@ useEffect(() => {
     if (!lap) {
       let statusDefault = "belum_login";
 
-      // 🔥 FIX: kalau ada riwayat & ujian sudah stop → anggap selesai
-      if (!ujianAktif && (laporan?.length || 0) > 0) {
-        statusDefault = "selesai";
-      }
+      
+      
 
       return {
         no_peserta: s.no_peserta,
@@ -161,8 +159,32 @@ useEffect(() => {
   });
 
   // 🔥 6. UPDATE UI
-  setPeserta(result);
-  hitungStat(result);
+  setPeserta((prev) => {
+  const mapPrev = new Map(prev.map(p => [p.no_peserta, p]));
+
+  const priority: Record<string, number> = {
+    sedang: 5,
+    selesai: 4,
+    auto_submit: 4,
+    belum_login: 1,
+  };
+
+  const finalData = result.map((r) => {
+    const old = mapPrev.get(r.no_peserta);
+    if (!old) return r;
+
+    const newP = priority[r.status] || 0;
+    const oldP = priority[old.status] || 0;
+
+    if (newP < oldP) return old;
+    return r;
+  });
+
+  // 🔥 PINDAH KE SINI
+  hitungStat(finalData);
+
+  return finalData;
+});
 }
 
   
@@ -335,15 +357,7 @@ useEffect(() => {
   loadPeserta();
 }, [selectedAsesmen, sesi]); // ✅ TAMBAH SESI
 
-useEffect(() => {
-  if (!selectedAsesmen) return;
 
-  const interval = setInterval(() => {
-    loadPeserta();
-  }, 5000); // tiap 5 detik
-
-  return () => clearInterval(interval);
-}, [selectedAsesmen, sesi]);
   // ===============================
 // REALTIME UPDATE
 // ===============================
@@ -386,23 +400,28 @@ useEffect(() => {
         if (Number(newData.sesi) !== Number(sesi)) return;
 
         setPeserta((prev: Monitoring[]) => {
-          return prev.map((p) => {
-            if (p.no_peserta !== newData.no_peserta) return p;
+  const updated = prev.map((p) => {
+    if (p.no_peserta !== newData.no_peserta) return p;
 
-            const currentPriority = priority[newData.status] || 0;
-            const existingPriority = priority[p.status] || 0;
+    const currentPriority = priority[newData.status] || 0;
+    const existingPriority = priority[p.status] || 0;
 
-            if (currentPriority >= existingPriority) {
-              return {
-                ...p,
-                status: newData.status,
-                pelanggaran: newData.pelanggaran ?? 0,
-              };
-            }
+    if (currentPriority >= existingPriority) {
+      return {
+        ...p,
+        status: newData.status,
+        pelanggaran: newData.pelanggaran ?? 0,
+      };
+    }
 
-            return p;
-          });
-        });
+    return p;
+  });
+
+  // 🔥 WAJIB
+  hitungStat(updated);
+
+  return updated;
+});
       }
     )
     .subscribe((status) => {
