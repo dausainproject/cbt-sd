@@ -174,12 +174,12 @@ useEffect(() => {
   if (!old) return r;
 
   // 🔒 kalau sudah final → jangan pernah turun
-  if (p.status === "selesai" || p.status === "auto_submit") {
-  return p;
-}
+  if (old.status === "selesai" || old.status === "auto_submit") {
+    return old;
+  }
 
-  const newP = priority[r.status] || 0;
-  const oldP = priority[old.status] || 0;
+  const newP = priority[r.status] ?? 0;
+  const oldP = priority[old.status] ?? 0;
 
   if (newP < oldP) return old;
   return r;
