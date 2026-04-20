@@ -132,31 +132,29 @@ useEffect(() => {
     }
   });
 
-  // 🔥 5. GABUNG KE SISWA
-  const result: Monitoring[] = siswa.map((s) => {
-    const lap = latestMap.get(s.no_peserta);
+  // 🔥 5. GABUNG KE SISWA (ANTI RESET STATUS)
+const result: Monitoring[] = siswa.map((s) => {
+  const lap = latestMap.get(s.no_peserta);
 
-    if (!lap) {
-      let statusDefault = "belum_login";
+  // 🔥 AMBIL DATA LAMA (ANTI RESET)
+  const existing = peserta?.find(p => p.no_peserta === s.no_peserta);
 
-      
-      
-
-      return {
-        no_peserta: s.no_peserta,
-        nama_lengkap: s.nama_lengkap,
-        status: statusDefault,
-        pelanggaran: 0,
-      };
-    }
-
+  if (!lap) {
     return {
       no_peserta: s.no_peserta,
       nama_lengkap: s.nama_lengkap,
-      status: lap.status,
-      pelanggaran: lap.pelanggaran ?? 0,
+      status: existing?.status || "belum_login",
+      pelanggaran: existing?.pelanggaran || 0,
     };
-  });
+  }
+
+  return {
+    no_peserta: s.no_peserta,
+    nama_lengkap: s.nama_lengkap,
+    status: lap.status,
+    pelanggaran: lap.pelanggaran ?? 0,
+  };
+});
 
   // 🔥 6. UPDATE UI
   setPeserta((prev) => {
