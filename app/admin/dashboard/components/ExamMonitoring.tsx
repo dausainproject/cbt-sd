@@ -105,11 +105,11 @@ useEffect(() => {
 
   // 🔥 3. PRIORITY STATUS (WAJIB ADA DI SINI BIAR AMAN)
   const priority: Record<string, number> = {
-    sedang: 4,
-    selesai: 3,
-    auto_submit: 3,
-    belum_login: 1,
-  };
+  selesai: 5,
+  auto_submit: 5,
+  sedang: 3,
+  belum_login: 1,
+};
 
   // 🔥 4. AMBIL STATUS TERBAIK PER PESERTA
   const latestMap = new Map<string, any>();
@@ -163,22 +163,27 @@ useEffect(() => {
   const mapPrev = new Map(prev.map(p => [p.no_peserta, p]));
 
   const priority: Record<string, number> = {
-    sedang: 5,
-    selesai: 4,
-    auto_submit: 4,
-    belum_login: 1,
-  };
+  selesai: 5,
+  auto_submit: 5,
+  sedang: 3,
+  belum_login: 1,
+};
 
   const finalData = result.map((r) => {
-    const old = mapPrev.get(r.no_peserta);
-    if (!old) return r;
+  const old = mapPrev.get(r.no_peserta);
+  if (!old) return r;
 
-    const newP = priority[r.status] || 0;
-    const oldP = priority[old.status] || 0;
+  // 🔒 kalau sudah final → jangan pernah turun
+  if (old.status === "selesai" || old.status === "auto_submit") {
+    return old;
+  }
 
-    if (newP < oldP) return old;
-    return r;
-  });
+  const newP = priority[r.status] || 0;
+  const oldP = priority[old.status] || 0;
+
+  if (newP < oldP) return old;
+  return r;
+});
 
   // 🔥 PINDAH KE SINI
   hitungStat(finalData);
@@ -363,9 +368,9 @@ useEffect(() => {
 // ===============================
 
 const priority: Record<string, number> = {
-  sedang: 4,
-  selesai: 3,
-  auto_submit: 3,
+  selesai: 5,
+  auto_submit: 5,
+  sedang: 3,
   belum_login: 1,
 };
 
@@ -403,6 +408,11 @@ useEffect(() => {
   const updated = prev.map((p) => {
     if (p.no_peserta !== newData.no_peserta) return p;
 
+    // 🔒 KUNCI: kalau sudah selesai, jangan bisa berubah lagi
+    if (p.status === "selesai" || p.status === "auto_submit") {
+      return p;
+    }
+
     const currentPriority = priority[newData.status] || 0;
     const existingPriority = priority[p.status] || 0;
 
@@ -416,6 +426,12 @@ useEffect(() => {
 
     return p;
   });
+
+  // 🔥 WAJIB biar statistik ikut update
+  hitungStat(updated);
+
+  return updated;
+});
 
   // 🔥 WAJIB
   hitungStat(updated);
