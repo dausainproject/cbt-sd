@@ -320,11 +320,13 @@ async function loadKonfigurasi() {
   }
 }
 
-//kunci token
+// ===============================
+// LOAD TOKEN (FIX)
+// ===============================
 async function loadToken() {
-  if (!selectedAsesmen || ujianAktif) return; // 🔥 INI KUNCI
+  if (!selectedAsesmen) return;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("token_ujian")
     .select("token")
     .eq("id_asesmen", selectedAsesmen)
@@ -333,6 +335,11 @@ async function loadToken() {
     .limit(1)
     .maybeSingle();
 
+  if (error) {
+    console.error("Error load token:", error);
+    return;
+  }
+
   if (data) {
     setToken(data.token);
   } else {
@@ -340,9 +347,10 @@ async function loadToken() {
   }
 }
 
+// 🔥 AUTO LOAD TOKEN SETIAP BALIK / CHANGE STATE
 useEffect(() => {
   loadToken();
-}, [selectedAsesmen]);
+}, [selectedAsesmen, sesi, ujianAktif]);
 
 
   // ===============================
