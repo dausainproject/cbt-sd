@@ -23,15 +23,17 @@ export default function SoalCard({ soal, value, onChange }: Props) {
 
   {/* 🔥 GAMBAR */}
   {soal.gambar && (
-  <img
-    src={soal.gambar}
-    alt="gambar soal"
-    className="max-h-[300px] object-contain mb-4 rounded border"
-  />
+  <div className="mb-4 flex justify-center">
+    <img
+      src={soal.gambar}
+      alt="gambar soal"
+      className="w-full max-w-md max-h-[250px] md:max-h-[320px] object-contain rounded-lg border"
+    />
+  </div>
 )}
 
   {/* 🔥 PERTANYAAN */}
-  <div className="text-lg">
+  <div className="text-base md:text-lg leading-relaxed">
     {soal.pertanyaan}
   </div>
 
@@ -71,7 +73,7 @@ function SoalPG({
 
         <label
           key={i}
-          className="flex gap-3 border p-3 rounded cursor-pointer hover:bg-gray-50"
+          className="flex items-start gap-3 border p-3 rounded-lg cursor-pointer active:scale-[0.98] transition"
         >
 
           <input
