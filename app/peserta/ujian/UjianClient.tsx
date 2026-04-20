@@ -12,6 +12,7 @@ type Soal = {
   pertanyaan: string;
   tipe: "pg" | "pgk" | "bs" | "bs_kompleks";
   pilihan: string[];
+  gambar?: string | null; // 🔥 TAMBAH INI
 };
 
 export default function UjianClient() {
@@ -86,23 +87,45 @@ useEffect(() => {
 }, [id]);
 
 
+// TIMER
 useEffect(() => {
   if (!endTime) return;
 
   const interval = setInterval(() => {
-  const now = Date.now();
-  const sisaMs = endTime - now;
+    const now = Date.now();
+    const sisaMs = endTime - now;
 
-  if (sisaMs <= 0) {
-    clearInterval(interval);
-    handleAutoSubmit();
-  } else {
-    setSisaWaktu(Math.floor(sisaMs / 1000)); // convert ke detik
-  }
-}, 1000);
+    if (sisaMs <= 0) {
+      clearInterval(interval);
+      handleAutoSubmit();
+    } else {
+      setSisaWaktu(Math.floor(sisaMs / 1000));
+    }
+  }, 1000);
 
   return () => clearInterval(interval);
 }, [endTime]);
+
+
+// 🔥 AUTO FULLSCREEN (TARO DI SINI)
+useEffect(() => {
+  const goFullscreen = () => {
+    const el = document.documentElement;
+
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().catch(() => {});
+    }
+  };
+
+  document.addEventListener("click", goFullscreen, { once: true });
+
+  return () => {
+    document.removeEventListener("click", goFullscreen);
+  };
+}, []);
+
+
+
 
   // AMBIL DATA PESERTA + ASESMEN
 useEffect(() => {
@@ -247,7 +270,7 @@ async function loadSoal() {
         }
       }
 
-      return { ...s, pilihan };
+      return { ...s, pilihan, gambar: s.gambar };
     });
 
     setSoal(soalFix);
@@ -479,38 +502,61 @@ async function handleAutoSubmit() {
  return (
   <>
     {/* 🔥 HEADER */}
-    <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-md border-b px-4 py-3 flex items-center justify-between">
-      
-      {/* Kiri */}
-      <div>
-        <p className="font-bold text-sm md:text-base">
-          {namaPeserta || "Peserta"}
-        </p>
-        <p className="text-xs md:text-sm text-gray-500">
-          {namaAsesmen || "Ujian"}
-        </p>
-      </div>
+<div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow border-b px-3 md:px-4 py-2 md:py-3 flex items-center justify-between gap-2">
+  
+  {/* 🔹 KIRI */}
+  <div className="min-w-0">
+    <p className="font-semibold text-sm md:text-base truncate">
+      {namaPeserta || "Peserta"}
+    </p>
+    <p className="text-[11px] md:text-sm text-gray-500 truncate">
+      {namaAsesmen || "Ujian"}
+    </p>
+  </div>
 
-      {/* Tengah (Timer) */}
-      <div className="text-center">
-        <p className="text-xs text-gray-500">Sisa Waktu</p>
-        <p className="text-xl md:text-2xl font-bold text-red-600 tracking-widest">
-          {formatWaktu(sisaWaktu)}
-        </p>
-      </div>
+  {/* 🔹 TENGAH (TIMER) */}
+  <div className="flex-1 text-center">
+    <p className="text-[10px] md:text-xs text-gray-500">
+      Sisa Waktu
+    </p>
+    <p className="text-lg md:text-2xl font-bold text-red-600 tracking-widest">
+      {formatWaktu(sisaWaktu)}
+    </p>
+  </div>
 
-      {/* Kanan */}
-      <div className="text-right">
-        <p className="text-xs text-gray-500">Mode</p>
-        <p
-          className={`font-bold text-sm ${
-            isFullscreen ? "text-green-600" : "text-red-600"
-          }`}
-        >
-          {isFullscreen ? "Fullscreen Aktif" : "Tidak Fullscreen"}
-        </p>
-      </div>
+  {/* 🔹 KANAN */}
+  <div className="flex flex-col items-end gap-1">
+
+    {/* STATUS */}
+    <div className="text-right">
+      <p className="text-[10px] md:text-xs text-gray-500">Mode</p>
+      <p
+        className={`font-bold text-[11px] md:text-sm ${
+          isFullscreen ? "text-green-600" : "text-red-600"
+        }`}
+      >
+        {isFullscreen ? "Fullscreen" : "Normal"}
+      </p>
     </div>
+
+    {/* 🔥 BUTTON FULLSCREEN */}
+    <button
+      onClick={() => {
+        const el = document.documentElement;
+
+        if (!document.fullscreenElement) {
+          el.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      }}
+      className="bg-black text-white px-2 py-1 rounded text-[10px] md:text-xs active:scale-95"
+    >
+      {isFullscreen ? "Keluar" : "Fullscreen"}
+    </button>
+
+  </div>
+</div>
 
     {/* 🔥 KONTEN UTAMA */}
     <div className="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
