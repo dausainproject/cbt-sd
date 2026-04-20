@@ -174,9 +174,9 @@ useEffect(() => {
   if (!old) return r;
 
   // 🔒 kalau sudah final → jangan pernah turun
-  if (old.status === "selesai" || old.status === "auto_submit") {
-    return old;
-  }
+  if (p.status === "selesai" || p.status === "auto_submit") {
+  return p;
+}
 
   const newP = priority[r.status] || 0;
   const oldP = priority[old.status] || 0;
@@ -326,7 +326,7 @@ async function loadKonfigurasi() {
 async function loadToken() {
   if (!selectedAsesmen) return;
 
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("token_ujian")
     .select("token")
     .eq("id_asesmen", selectedAsesmen)
@@ -335,16 +335,7 @@ async function loadToken() {
     .limit(1)
     .maybeSingle();
 
-  if (error) {
-    console.error("Error load token:", error);
-    return;
-  }
-
-  if (data) {
-    setToken(data.token);
-  } else {
-    setToken("");
-  }
+  setToken(data?.token || "");
 }
 
 // 🔥 AUTO LOAD TOKEN SETIAP BALIK / CHANGE STATE
@@ -370,7 +361,15 @@ useEffect(() => {
   loadPeserta();
 }, [selectedAsesmen, sesi]); // ✅ TAMBAH SESI
 
+useEffect(() => {
+  if (!selectedAsesmen) return;
 
+  const interval = setInterval(() => {
+    loadPeserta();
+  }, 5000); // tiap 5 detik
+
+  return () => clearInterval(interval);
+}, [selectedAsesmen, sesi]);
   // ===============================
 // REALTIME UPDATE
 // ===============================
