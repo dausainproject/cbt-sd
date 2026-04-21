@@ -350,21 +350,21 @@ async function loadToken() {
     .from("token_ujian")
     .select("token")
     .eq("id_asesmen", selectedAsesmen)
+    .eq("status", true) // 🔥 INI KUNCI NYA
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (error) {
-  console.log("❌ ERROR TOKEN:", error.message, error.details);
-  return;
+    console.log("❌ ERROR TOKEN:", error.message, error.details);
+    return;
   }
 
   if (data?.token) {
     setToken(data.token);
     localStorage.setItem("token_ujian", data.token);
   } else {
-    const saved = localStorage.getItem("token_ujian");
-    if (saved) setToken(saved);
+    setToken(""); // 🔥 JANGAN AMBIL DARI LOCALSTORAGE LAGI
   }
 }
 
@@ -559,102 +559,133 @@ async function generateToken() {
   return (
     <div className="p-6 grid grid-cols-3 gap-6">
 
-      {/* LEFT SIDE */}
-<div className="col-span-1 space-y-6">
+     <div className="col-span-1 space-y-6">
 
-  
   {/* ⚙️ KONFIGURASI */}
-  <div className="bg-white p-4 rounded-2xl shadow">
-    <h2 className="font-bold mb-4">Konfigurasi Ujian</h2>
+  <div className="bg-white p-5 rounded-2xl shadow-lg border space-y-4">
 
-    <p className="mb-3 text-sm">
-      Asesmen: <b>{asesmen[0]?.nama_asesmen || "-"}</b>
-    </p>
+    {/* HEADER */}
+    <div className="flex justify-between items-center">
+      <h2 className="font-bold text-lg">Konfigurasi Ujian</h2>
 
-    <label className="text-sm">Durasi (menit)</label>
-    <input
-      type="number"
-      disabled={ujianAktif}
-      className="w-full border p-2 mb-3 rounded"
-      value={durasi}
-      onChange={(e) => setDurasi(Number(e.target.value))}
-    />
+      <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+        ujianAktif
+          ? "bg-green-100 text-green-700"
+          : "bg-gray-200 text-gray-600"
+      }`}>
+        {ujianAktif ? "● LIVE" : "● STOP"}
+      </span>
+    </div>
 
-    <label className="text-sm">Sesi Ujian</label>
-    <select
-      disabled={ujianAktif}
-      className="w-full border p-2 mb-3 rounded"
-      value={sesi}
-      onChange={(e) => setSesi(Number(e.target.value))}
-    >
-      <option value={1}>Sesi 1 (Utama)</option>
-      <option value={2}>Sesi 2 (Susulan)</option>
-      <option value={3}>Sesi 3</option>
-    </select>
+    {/* ASESMEN */}
+    <div className="text-sm text-gray-600">
+      Asesmen:
+      <div className="font-semibold text-gray-800">
+        {asesmen[0]?.nama_asesmen || "-"}
+      </div>
+    </div>
 
-    <label className="text-sm">Jenis Sesi</label>
-    <select
-      disabled={ujianAktif}
-      className="w-full border p-2 mb-3 rounded"
-      value={jenisSesi}
-      onChange={(e) => setJenisSesi(e.target.value)}
-    >
-      <option value="utama">Ujian Utama</option>
-      <option value="susulan">Ujian Susulan</option>
-    </select>
+    {/* DURASI */}
+    <div>
+      <label className="text-xs text-gray-500">Durasi (menit)</label>
+      <input
+        type="number"
+        disabled={ujianAktif}
+        className="w-full border mt-1 p-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
+        value={durasi}
+        onChange={(e) => setDurasi(Number(e.target.value))}
+      />
+    </div>
+
+    {/* SESI */}
+    <div>
+      <label className="text-xs text-gray-500">Sesi Ujian</label>
+      <select
+        disabled={ujianAktif}
+        className="w-full border mt-1 p-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
+        value={sesi}
+        onChange={(e) => setSesi(Number(e.target.value))}
+      >
+        <option value={1}>Sesi 1 (Utama)</option>
+        <option value={2}>Sesi 2 (Susulan)</option>
+        <option value={3}>Sesi 3</option>
+      </select>
+    </div>
+
+    {/* JENIS */}
+    <div>
+      <label className="text-xs text-gray-500">Jenis Sesi</label>
+      <select
+        disabled={ujianAktif}
+        className="w-full border mt-1 p-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
+        value={jenisSesi}
+        onChange={(e) => setJenisSesi(e.target.value)}
+      >
+        <option value="utama">Ujian Utama</option>
+        <option value="susulan">Ujian Susulan</option>
+      </select>
+    </div>
 
     {/* TOKEN */}
-    <div className="bg-gray-100 p-3 rounded mb-3 text-center">
-      <p className="text-xs text-gray-500">TOKEN</p>
-      <div className="text-lg font-mono tracking-widest">
+    <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-4 rounded-xl text-center shadow-inner">
+      <p className="text-xs opacity-70">TOKEN UJIAN</p>
+      <div className="text-2xl font-mono tracking-widest mt-1">
         {token || "------"}
       </div>
     </div>
 
+    {/* BUTTON TOKEN */}
     <button
       onClick={generateToken}
       disabled={ujianAktif}
-      className={`w-full py-2 rounded mb-3 text-white ${
-        ujianAktif || !!token
-          ? "bg-gray-400 cursor-not-allowed"
-          : "bg-blue-600 hover:bg-blue-700"
+      className={`w-full py-2 rounded-lg font-semibold transition ${
+        ujianAktif
+          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700 text-white shadow"
       }`}
     >
-      RILIS TOKEN
+      🔐 RILIS TOKEN
     </button>
 
+    {/* BUTTON START/STOP */}
     <button
       onClick={ujianAktif ? stopUjian : mulaiUjian}
-      className={`w-full py-2 rounded text-white font-semibold ${
+      className={`w-full py-3 rounded-lg text-white font-bold transition shadow ${
         ujianAktif
           ? "bg-red-600 hover:bg-red-700"
           : "bg-green-600 hover:bg-green-700"
       }`}
     >
-      {ujianAktif ? "STOP UJIAN" : "MULAI UJIAN"}
+      {ujianAktif ? "⛔ STOP UJIAN" : "🚀 MULAI UJIAN"}
     </button>
   </div>
 
   {/* 📊 STATISTIK */}
-  <div className="bg-sky-500 text-white p-4 rounded-2xl shadow">
-    <h2 className="font-bold mb-3">Statistik</h2>
+  <div className="bg-gradient-to-br from-sky-500 to-sky-600 text-white p-5 rounded-2xl shadow-lg">
+    <h2 className="font-bold mb-4 text-lg">Statistik</h2>
 
-    <div className="grid grid-cols-2 gap-2 text-sm">
-      <div className="bg-white/20 p-2 rounded">
-        Login : {statLogin}
+    <div className="grid grid-cols-2 gap-3 text-sm">
+
+      <div className="bg-white/20 p-3 rounded-lg text-center">
+        <p className="text-xs opacity-80">Login</p>
+        <p className="text-lg font-bold">{statLogin}</p>
       </div>
 
-      <div className="bg-white/20 p-2 rounded">
-        Sedang : {statSedang}
+      <div className="bg-white/20 p-3 rounded-lg text-center">
+        <p className="text-xs opacity-80">Sedang</p>
+        <p className="text-lg font-bold">{statSedang}</p>
       </div>
 
-      <div className="bg-white/20 p-2 rounded">
-        Selesai : {statSelesai}
+      <div className="bg-white/20 p-3 rounded-lg text-center">
+        <p className="text-xs opacity-80">Selesai</p>
+        <p className="text-lg font-bold">{statSelesai}</p>
       </div>
 
-      <div className="bg-white/20 p-2 rounded">
-        Warning : {statWarning}
+      <div className="bg-white/20 p-3 rounded-lg text-center">
+        <p className="text-xs opacity-80">Warning</p>
+        <p className="text-lg font-bold">{statWarning}</p>
       </div>
+
     </div>
   </div>
 
