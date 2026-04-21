@@ -258,24 +258,17 @@ const result: Monitoring[] = siswa.map((s) => {
 
   const sesiFix = Number(sesi);
 
-  // 1. STOP UJIAN
   await supabase
     .from("ujian_aktif")
     .update({ status: "selesai" })
     .eq("id_asesmen", selectedAsesmen)
     .eq("sesi", sesiFix);
 
-  // 2. 🔥 MATIKAN SEMUA TOKEN (FIX)
-  const { error: errToken } = await supabase
+  await supabase
     .from("token_ujian")
     .update({ status: false })
     .eq("id_asesmen", selectedAsesmen);
 
-  if (errToken) {
-    console.log("❌ ERROR TOKEN:", errToken);
-  }
-
-  // 3. AUTO SUBMIT
   await supabase
     .from("laporan_ujian")
     .update({ status: "auto_submit" })
@@ -283,14 +276,16 @@ const result: Monitoring[] = siswa.map((s) => {
     .eq("sesi", sesiFix)
     .neq("status", "selesai");
 
-  // 4. CLEAR UI
+  // 🔥 FORCE CLEAR + tahan polling
   setToken("");
   setUjianAktif(false);
-  setDurasi(60);
+
+  // 🔥 delay dikit biar polling gak balikin token lama
+  setTimeout(() => {
+    loadToken();
+  }, 500);
 
   alert("Ujian dihentikan");
-
-  await loadPeserta();
 }
 
   
@@ -339,19 +334,19 @@ async function loadToken() {
     .select("token")
     .eq("id_asesmen", selectedAsesmen)
     .eq("status", true)
-    .order("created_at", { ascending: false }) // pastikan kolom ini ada
-    .limit(1) // 🔥 WAJIB biar gak double
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) {
-    console.log("❌ ERROR TOKEN:", error.message, error.details);
+    console.log("❌ ERROR TOKEN:", error.message);
     return;
   }
 
-  // 🔥 ANTI RERENDER SIA-SIA (biar gak flicker / ketiban polling)
+  const newToken = data?.token || "";
+
   setToken((prev) => {
-    const newToken = data?.token || "";
-    if (prev === newToken) return prev;
+    if (prev === newToken) return prev; // 🔥 cegah overwrite
     return newToken;
   });
 }
@@ -476,20 +471,19 @@ useEffect(() => {
     result += chars[Math.floor(Math.random() * chars.length)];
   }
 
-  // 🔥 1. MATIKAN SEMUA TOKEN LAMA
+  // 🔥 MATIKAN TOKEN LAMA
   const { error: resetError } = await supabase
     .from("token_ujian")
     .update({ status: false })
-    .eq("id_asesmen", selectedAsesmen)
-    .select(); // 🔥 penting
+    .eq("id_asesmen", selectedAsesmen);
 
   if (resetError) {
     console.log("❌ RESET TOKEN ERROR:", resetError);
     return;
   }
 
-  // 🔥 2. INSERT TOKEN BARU
-  const { data, error: insertError } = await supabase
+  // 🔥 INSERT TOKEN BARU
+  const { data, error } = await supabase
     .from("token_ujian")
     .insert({
       id_asesmen: selectedAsesmen,
@@ -497,18 +491,17 @@ useEffect(() => {
       status: true,
     })
     .select()
-    .single(); // 🔥 ambil hasil langsung
+    .single();
 
-  if (insertError) {
-    console.log("❌ INSERT TOKEN ERROR:", insertError);
+  if (error) {
+    console.log("❌ INSERT TOKEN ERROR:", error);
     return;
   }
 
-  // 🔥 3. SET DARI HASIL DB (ANTI KETIMPA)
+  // 🔥 SET TOKEN LANGSUNG (JANGAN NUNGGU LOAD)
   setToken(data.token);
 
-  // 🔥 4. OPTIONAL: SYNC ULANG (kalau masih bandel)
-  // await loadToken();
+  // ⛔ JANGAN langsung loadToken disini
 }
 
   // ===============================
