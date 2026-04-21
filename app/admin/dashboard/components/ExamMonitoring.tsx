@@ -40,6 +40,7 @@ export default function ExamMonitoring() {
   const [sesi, setSesi] = useState(1);
   const [ujianAktif, setUjianAktif] = useState(false);
 const [jenisSesi, setJenisSesi] = useState("utama");
+const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   // ===============================
   // LOAD KELAS
@@ -252,7 +253,7 @@ const result: Monitoring[] = siswa.map((s) => {
   }
 }
   
-  async function stopUjian() {
+ async function stopUjian() {
   if (!selectedAsesmen) return;
 
   const sesiFix = Number(sesi);
@@ -267,37 +268,40 @@ const result: Monitoring[] = siswa.map((s) => {
     .eq("sesi", sesiFix);
 
   if (error) {
-  console.log("❌ ERROR STOP UJIAN:", error.message, error.details);
-}
+    console.log("❌ ERROR STOP UJIAN:", error.message, error.details);
+  }
 
-  // 🔥 2. FORCE SEMUA PESERTA → AUTO SUBMIT
+  // 🔥 2. FORCE AUTO SUBMIT
   const { error: errUpdate } = await supabase
     .from("laporan_ujian")
     .update({ status: "auto_submit" })
     .eq("id_asesmen", selectedAsesmen)
     .eq("sesi", sesiFix)
-    .neq("status", "selesai"); // biar yang sudah selesai gak ketimpa
+    .neq("status", "selesai");
 
   if (errUpdate) {
-  console.log("❌ ERROR AUTO SUBMIT:", errUpdate.message, errUpdate.details);
-}
+    console.log("❌ ERROR AUTO SUBMIT:", errUpdate.message, errUpdate.details);
+  }
 
-  // 🔥 3. MATIKAN TOKEN DI DB
+  // 🔥 3. MATIKAN TOKEN
   await supabase
     .from("token_ujian")
     .update({ status: false })
     .eq("id_asesmen", selectedAsesmen);
 
-  // 🔥 4. BERSIHKAN TOKEN DI CLIENT
+  // 🔥 4. CLEAR TOKEN CLIENT
   setToken("");
   localStorage.removeItem("token_ujian");
 
-  // 🔥 5. UPDATE UI STATE
+  // 🔥 5. UPDATE STATE
   setUjianAktif(false);
+
+  // 🔥 6. RESET DURASI KE DEFAULT
+  setDurasi(60);
 
   alert("Ujian dihentikan");
 
-  // 🔥 6. RELOAD DATA (BIAR MONITORING LANGSUNG UPDATE)
+  // 🔥 7. RELOAD DATA
   await loadPeserta();
 }
 
@@ -315,15 +319,25 @@ async function loadKonfigurasi() {
     .maybeSingle();
 
   if (error) {
-  console.log("❌ ERROR KONFIG:", error.message, error.details);
-  return;
+    console.log("❌ ERROR KONFIG:", error.message, error.details);
+    return;
   }
 
   if (data) {
-    setDurasi(data.durasi_menit ?? 60);
     setJenisSesi(data.jenis_sesi || "utama");
-    setUjianAktif(data.status === "berjalan");
+
+    const isRunning = data.status === "berjalan";
+    setUjianAktif(isRunning);
+
+    // 🔥 AMBIL DURASI HANYA SAAT:
+    // 1. pertama load DAN ada data
+    // 2. ATAU ujian sedang berjalan
+    if (isFirstLoad || isRunning) {
+      setDurasi(data.durasi_menit ?? 60);
+    }
   }
+
+  setIsFirstLoad(false);
 }
 
 // ===============================
@@ -382,12 +396,16 @@ useEffect(() => {
 
   const interval = setInterval(() => {
     loadPeserta();
-    loadToken();        // 🔥 biar token gak ilang
-    loadKonfigurasi();  // 🔥 biar status ujian sync
-  }, 3000); // lebih responsif
+    loadToken();
+
+    // 🔥 HANYA SYNC SAAT UJIAN BERJALAN
+    if (ujianAktif) {
+      loadKonfigurasi();
+    }
+  }, 3000);
 
   return () => clearInterval(interval);
-}, [selectedAsesmen, sesi]);
+}, [selectedAsesmen, sesi, ujianAktif]);
   // ===============================
 // REALTIME UPDATE
 // ===============================
