@@ -256,13 +256,14 @@ const result: Monitoring[] = siswa.map((s) => {
  async function stopUjian() {
   if (!selectedAsesmen) return;
 
+  const id = Number(selectedAsesmen);
   const sesiFix = Number(sesi);
 
-  // 🔥 1. STOP UJIAN
+  // 1. STOP UJIAN
   const { error: errUjian } = await supabase
     .from("ujian_aktif")
     .update({ status: "selesai" })
-    .eq("id_asesmen", selectedAsesmen)
+    .eq("id_asesmen", id)
     .eq("sesi", sesiFix);
 
   if (errUjian) {
@@ -270,12 +271,19 @@ const result: Monitoring[] = siswa.map((s) => {
     return;
   }
 
-  // 🔥 2. HARD KILL TOKEN (WAJIB SELECT BIAR KE-EKSEKUSI FULL)
+  // 🔥 DEBUG DULU (WAJIB)
+  const { data: before } = await supabase
+    .from("token_ujian")
+    .select("*")
+    .eq("id_asesmen", id);
+
+  console.log("🧪 TOKEN SEBELUM:", before);
+
+  // 2. MATIKAN SEMUA TOKEN TANPA SYARAT
   const { data: killed, error: errToken } = await supabase
     .from("token_ujian")
     .update({ status: false })
-    .eq("id_asesmen", selectedAsesmen)
-    .eq("status", true) // 🔥 hanya yang aktif
+    .eq("id_asesmen", id)
     .select();
 
   console.log("🔻 TOKEN DIMATIKAN:", killed);
@@ -285,28 +293,24 @@ const result: Monitoring[] = siswa.map((s) => {
     return;
   }
 
-  // 🔥 3. AUTO SUBMIT
-  const { error: errAuto } = await supabase
+  // 🔥 DEBUG LAGI
+  const { data: after } = await supabase
+    .from("token_ujian")
+    .select("*")
+    .eq("id_asesmen", id);
+
+  console.log("🧪 TOKEN SESUDAH:", after);
+
+  // 3. AUTO SUBMIT
+  await supabase
     .from("laporan_ujian")
     .update({ status: "auto_submit" })
-    .eq("id_asesmen", selectedAsesmen)
+    .eq("id_asesmen", id)
     .eq("sesi", sesiFix)
     .neq("status", "selesai");
 
-  if (errAuto) {
-    console.log("❌ ERROR AUTO:", errAuto);
-  }
-
-  // 🔥 4. STOP POLLING EFFECT
   setUjianAktif(false);
-
-  // 🔥 5. CLEAR TOKEN (UI)
   setToken("");
-
-  // 🔥 6. PAKSA SYNC (optional tapi aman)
-  setTimeout(async () => {
-    await loadToken();
-  }, 700);
 
   alert("Ujian dihentikan");
 }
