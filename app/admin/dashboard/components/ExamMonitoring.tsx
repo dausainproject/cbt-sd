@@ -252,11 +252,10 @@ const result: Monitoring[] = siswa.map((s) => {
   }
 }
   
-  // STOP UJIAN
-async function stopUjian() {
+  async function stopUjian() {
   if (!selectedAsesmen) return;
 
-  const sesiFix = Number(sesi); // 🔥 pastikan konsisten
+  const sesiFix = Number(sesi);
 
   // 🔥 1. MATIKAN UJIAN
   const { error } = await supabase
@@ -272,6 +271,37 @@ async function stopUjian() {
     alert("Gagal menghentikan ujian");
     return;
   }
+
+  // 🔥 2. FORCE SEMUA PESERTA → AUTO SUBMIT
+  const { error: errUpdate } = await supabase
+    .from("laporan_ujian")
+    .update({ status: "auto_submit" })
+    .eq("id_asesmen", selectedAsesmen)
+    .eq("sesi", sesiFix)
+    .neq("status", "selesai"); // biar yang sudah selesai gak ketimpa
+
+  if (errUpdate) {
+    console.log("Error update laporan:", errUpdate);
+  }
+
+  // 🔥 3. MATIKAN TOKEN DI DB
+  await supabase
+    .from("token_ujian")
+    .update({ status: false })
+    .eq("id_asesmen", selectedAsesmen);
+
+  // 🔥 4. BERSIHKAN TOKEN DI CLIENT
+  setToken("");
+  localStorage.removeItem("token_ujian");
+
+  // 🔥 5. UPDATE UI STATE
+  setUjianAktif(false);
+
+  alert("Ujian dihentikan");
+
+  // 🔥 6. RELOAD DATA (BIAR MONITORING LANGSUNG UPDATE)
+  await loadPeserta();
+}
 
   // 🔥 2. FORCE SEMUA PESERTA → AUTO SUBMIT (AMAN)
 const { error: errUpdate } = await supabase
@@ -324,16 +354,31 @@ async function loadKonfigurasi() {
 async function loadToken() {
   if (!selectedAsesmen) return;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("token_ujian")
     .select("token")
     .eq("id_asesmen", selectedAsesmen)
-    .eq("status", true)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  setToken(data?.token || "");
+  if (error) {
+    console.log("❌ Error load token:", error);
+    return;
+  }
+
+  // ✅ kalau ada di DB → pakai
+  if (data?.token) {
+    setToken(data.token);
+    localStorage.setItem("token_ujian", data.token);
+  } 
+  // 🔥 fallback ke localStorage (anti kosong)
+  else {
+    const saved = localStorage.getItem("token_ujian");
+    if (saved) {
+      setToken(saved);
+    }
+  }
 }
 
 // 🔥 AUTO LOAD TOKEN SETIAP BALIK / CHANGE STATE
