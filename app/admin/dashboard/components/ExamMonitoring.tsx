@@ -63,7 +63,7 @@ useEffect(() => {
   const { data } = await supabase
     .from("data_asesmen")
     .select("*")
-    .limit(5)
+    .limit(1)
     .single();
 
   if (data) {
@@ -362,8 +362,8 @@ async function loadToken() {
     .eq("id_asesmen", selectedAsesmen)
     .eq("status", true)
     .order("created_at", { ascending: false })
-    .limit(5)
-    .maybeSingle();
+    .limit(1) // 🔥 WAJIB 1
+    .maybeSingle(); // ✅ aman sekarang
 
   if (error) {
     console.log("❌ ERROR TOKEN:", error.message);
@@ -373,7 +373,7 @@ async function loadToken() {
   const newToken = data?.token || "";
 
   setToken((prev) => {
-    if (prev === newToken) return prev; // 🔥 cegah overwrite
+    if (prev === newToken) return prev;
     return newToken;
   });
 }
