@@ -478,12 +478,7 @@ useEffect(() => {
 
   
 
-  // ===============================
-  // ===============================
-// GENERATE TOKEN
-// ===============================
-
-async function generateToken() {
+  async function generateToken() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let result = "";
 
@@ -493,7 +488,7 @@ async function generateToken() {
 
   if (!selectedAsesmen) return;
 
-  // 🔥 1. MATIKAN SEMUA TOKEN LAMA
+  // 🔥 1. MATIKAN TOKEN LAMA
   await supabase
     .from("token_ujian")
     .update({ status: false })
@@ -509,8 +504,10 @@ async function generateToken() {
     });
 
   if (error) {
-  console.log("❌ ERROR GENERATE TOKEN:", error.message, error.details);
-}
+    console.log("❌ ERROR GENERATE TOKEN:", error.message, error.details);
+  } else {
+    setToken(result); // 🔥 INI KUNCI NYA (biar langsung tampil)
+  }
 }
 
   // ===============================
