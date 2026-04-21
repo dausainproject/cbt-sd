@@ -356,20 +356,15 @@ async function loadKonfigurasi() {
 async function loadToken() {
   if (!selectedAsesmen) return;
 
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("token_ujian")
     .select("token")
     .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", sesi) // 🔥 WAJIB INI
+    .eq("sesi", Number(sesi))
     .eq("status", true)
     .order("dibuat_pada", { ascending: false })
     .limit(1)
     .maybeSingle();
-
-  if (error) {
-    console.log("❌ ERROR TOKEN:", error.message);
-    return;
-  }
 
   setToken(data?.token || "");
 }
@@ -494,24 +489,23 @@ useEffect(() => {
     result += chars[Math.floor(Math.random() * chars.length)];
   }
 
-  // 🔥 1. MATIKAN TOKEN LAMA (KHUSUS SESI INI)
-  const { error: resetError } = await supabase
+  const asesmenId = Number(selectedAsesmen);
+  const sesiFix = Number(sesi);
+
+  // 🔥 1. MATIKAN SEMUA TOKEN AKTIF DI ASESMEN + SESI INI
+  await supabase
     .from("token_ujian")
     .update({ status: false })
-    .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", sesi); // ✅ FIX
+    .eq("id_asesmen", asesmenId)
+    .eq("sesi", sesiFix)
+    .eq("status", true);
 
-  if (resetError) {
-    console.log("❌ RESET TOKEN ERROR:", resetError.message);
-    return;
-  }
-
-  // 🔥 2. INSERT TOKEN BARU (PAKAI SESI)
+  // 🔥 2. INSERT TOKEN BARU
   const { data, error } = await supabase
     .from("token_ujian")
     .insert({
-      id_asesmen: selectedAsesmen,
-      sesi: sesi, // ✅ WAJIB
+      id_asesmen: asesmenId,
+      sesi: sesiFix,
       token: result,
       status: true,
     })
@@ -523,7 +517,6 @@ useEffect(() => {
     return;
   }
 
-  // 🔥 3. SET KE STATE TANPA NUNGGU LOAD
   setToken(data.token);
 }
 
