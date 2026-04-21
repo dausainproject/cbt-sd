@@ -41,7 +41,7 @@ export default function ExamMonitoring() {
   const [ujianAktif, setUjianAktif] = useState(false);
 const [jenisSesi, setJenisSesi] = useState("utama");
 const [isFirstLoad, setIsFirstLoad] = useState(true);
-
+const isTokenActive = ujianAktif && token;
   // ===============================
   // LOAD KELAS
   // ===============================
@@ -356,17 +356,22 @@ async function loadKonfigurasi() {
 async function loadToken() {
   if (!selectedAsesmen) return;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("token_ujian")
-    .select("token")
+    .select("token, status, dibuat_pada")
     .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", Number(sesi))
+    .eq("sesi", sesi)
     .eq("status", true)
     .order("dibuat_pada", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  setToken(data?.token || "");
+  if (error) {
+    console.log("TOKEN ERROR:", error);
+    return;
+  }
+
+  setToken(data?.token ?? "");
 }
 
 // 🔥 AUTO LOAD TOKEN SETIAP BALIK / CHANGE STATE
@@ -489,22 +494,21 @@ useEffect(() => {
     result += chars[Math.floor(Math.random() * chars.length)];
   }
 
-  const asesmenId = Number(selectedAsesmen);
+  const id = Number(selectedAsesmen);
   const sesiFix = Number(sesi);
 
-  // 🔥 1. MATIKAN SEMUA TOKEN AKTIF DI ASESMEN + SESI INI
+  // 🔥 1. MATIKAN SEMUA TOKEN LAMA
   await supabase
-    .from("token_ujian")
-    .update({ status: false })
-    .eq("id_asesmen", asesmenId)
-    .eq("sesi", sesiFix)
-    .eq("status", true);
+  .from("token_ujian")
+  .update({ status: false })
+  .eq("id_asesmen", id)
+  .eq("sesi", sesiFix)
 
-  // 🔥 2. INSERT TOKEN BARU
+  // 🔥 2. INSERT TOKEN BARU (PASTI BARU)
   const { data, error } = await supabase
     .from("token_ujian")
     .insert({
-      id_asesmen: asesmenId,
+      id_asesmen: id,
       sesi: sesiFix,
       token: result,
       status: true,
