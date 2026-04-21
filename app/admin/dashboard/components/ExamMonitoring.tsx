@@ -48,7 +48,7 @@ const [jenisSesi, setJenisSesi] = useState("utama");
 
 useEffect(() => {
   loadKonfigurasi();
-}, [selectedAsesmen]);
+}, [selectedAsesmen, sesi]);
 
   useEffect(() => {
   loadAsesmen();
@@ -303,32 +303,7 @@ const result: Monitoring[] = siswa.map((s) => {
   await loadPeserta();
 }
 
-  // 🔥 2. FORCE SEMUA PESERTA → AUTO SUBMIT (AMAN)
-const { error: errUpdate } = await supabase
-  .from("laporan_ujian")
-  .update({ status: "auto_submit" })
-  .eq("id_asesmen", selectedAsesmen)
-  .eq("sesi", sesiFix)
-  .neq("status", "selesai"); // 🔥 biar gak nabrak yg udah selesai
-
-  if (errUpdate) {
-    console.log("Error update laporan:", errUpdate);
-  }
-
-  // 🔥 3. MATIKAN TOKEN
-  await supabase
-    .from("token_ujian")
-    .update({ status: false })
-    .eq("id_asesmen", selectedAsesmen);
-
-  // 🔥 4. RESET UI STATE
-  setToken("");
-  setUjianAktif(false);
-
-  alert("Ujian dihentikan");
-
-  // 🔥 5. DELAY BIAR DATA MASUK DULU (ANTI BALIK KE BELUM_LOGIN)
-  await loadPeserta();
+  
 }
 
 async function loadKonfigurasi() {
@@ -356,8 +331,9 @@ async function loadToken() {
 
   const { data, error } = await supabase
     .from("token_ujian")
-    .select("token")
+    .select("token, status")
     .eq("id_asesmen", selectedAsesmen)
+    .eq("status", true)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -367,17 +343,13 @@ async function loadToken() {
     return;
   }
 
-  // ✅ kalau ada di DB → pakai
+  // ✅ hanya token aktif
   if (data?.token) {
     setToken(data.token);
     localStorage.setItem("token_ujian", data.token);
-  } 
-  // 🔥 fallback ke localStorage (anti kosong)
-  else {
-    const saved = localStorage.getItem("token_ujian");
-    if (saved) {
-      setToken(saved);
-    }
+  } else {
+    setToken("");
+    localStorage.removeItem("token_ujian");
   }
 }
 
@@ -409,7 +381,9 @@ useEffect(() => {
 
   const interval = setInterval(() => {
     loadPeserta();
-  }, 5000); // tiap 5 detik
+    loadToken();        // 🔥 biar token gak ilang
+    loadKonfigurasi();  // 🔥 biar status ujian sync
+  }, 3000); // lebih responsif
 
   return () => clearInterval(interval);
 }, [selectedAsesmen, sesi]);
