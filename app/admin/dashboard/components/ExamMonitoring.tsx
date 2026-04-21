@@ -47,6 +47,7 @@ const [jenisSesi, setJenisSesi] = useState("utama");
 
 
 useEffect(() => {
+  if (!selectedAsesmen) return;
   loadKonfigurasi();
 }, [selectedAsesmen, sesi]);
 
@@ -75,14 +76,14 @@ useEffect(() => {
 
   // 🔥 1. AMBIL DATA SISWA
   const { data: siswa, error: errSiswa } = await supabase
-    .from("data_siswa")
-    .select("no_peserta,nama_lengkap")
-    .eq("status", true);
+  .from("data_siswa")
+  .select("no_peserta,nama_lengkap")
+  .eq("status", true);
 
-  if (errSiswa) {
-    console.error("Error siswa:", errSiswa);
-    return;
-  }
+if (errSiswa) {
+  console.log("❌ ERROR SISWA:", errSiswa.message, errSiswa.details);
+  return;
+}
 
   if (!siswa || siswa.length === 0) {
     setPeserta([]);
@@ -100,7 +101,7 @@ useEffect(() => {
     .order("created_at", { ascending: false });
 
   if (errLaporan) {
-    console.error("Error laporan:", errLaporan);
+  console.log("❌ ERROR LAPORAN:", errLaporan.message, errLaporan.details);
   }
 
   // 🔥 3. PRIORITY STATUS (WAJIB ADA DI SINI BIAR AMAN)
@@ -243,9 +244,8 @@ const result: Monitoring[] = siswa.map((s) => {
   }
 
   if (error) {
-    console.log(error);
-    alert("Gagal memulai ujian: " + error.message);
-  } else {
+  console.log("❌ ERROR MULAI:", error.message, error.details);
+} else {
     alert("Ujian dimulai");
     setUjianAktif(true);
     loadPeserta();
@@ -267,10 +267,8 @@ const result: Monitoring[] = siswa.map((s) => {
     .eq("sesi", sesiFix);
 
   if (error) {
-    console.log(error);
-    alert("Gagal menghentikan ujian");
-    return;
-  }
+  console.log("❌ ERROR STOP UJIAN:", error.message, error.details);
+}
 
   // 🔥 2. FORCE SEMUA PESERTA → AUTO SUBMIT
   const { error: errUpdate } = await supabase
@@ -281,8 +279,8 @@ const result: Monitoring[] = siswa.map((s) => {
     .neq("status", "selesai"); // biar yang sudah selesai gak ketimpa
 
   if (errUpdate) {
-    console.log("Error update laporan:", errUpdate);
-  }
+  console.log("❌ ERROR AUTO SUBMIT:", errUpdate.message, errUpdate.details);
+}
 
   // 🔥 3. MATIKAN TOKEN DI DB
   await supabase
@@ -309,15 +307,20 @@ const result: Monitoring[] = siswa.map((s) => {
 async function loadKonfigurasi() {
   if (!selectedAsesmen) return;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("ujian_aktif")
     .select("*")
     .eq("id_asesmen", selectedAsesmen)
     .eq("sesi", Number(sesi))
     .maybeSingle();
 
+  if (error) {
+  console.log("❌ ERROR KONFIG:", error.message, error.details);
+  return;
+  }
+
   if (data) {
-    setDurasi(data.durasi_menit);
+    setDurasi(data.durasi_menit ?? 60);
     setJenisSesi(data.jenis_sesi || "utama");
     setUjianAktif(data.status === "berjalan");
   }
@@ -331,25 +334,23 @@ async function loadToken() {
 
   const { data, error } = await supabase
     .from("token_ujian")
-    .select("token, status")
+    .select("token")
     .eq("id_asesmen", selectedAsesmen)
-    .eq("status", true)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (error) {
-    console.log("❌ Error load token:", error);
-    return;
+  console.log("❌ ERROR TOKEN:", error.message, error.details);
+  return;
   }
 
-  // ✅ hanya token aktif
   if (data?.token) {
     setToken(data.token);
     localStorage.setItem("token_ujian", data.token);
   } else {
-    setToken("");
-    localStorage.removeItem("token_ujian");
+    const saved = localStorage.getItem("token_ujian");
+    if (saved) setToken(saved);
   }
 }
 
@@ -489,9 +490,9 @@ async function generateToken() {
       status: true,
     });
 
-  if (!error) {
-    setToken(result);
-  }
+  if (error) {
+  console.log("❌ ERROR GENERATE TOKEN:", error.message, error.details);
+}
 }
 
   // ===============================
