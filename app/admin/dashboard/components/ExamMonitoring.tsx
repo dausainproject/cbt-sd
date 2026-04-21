@@ -304,7 +304,7 @@ const result: Monitoring[] = siswa.map((s) => {
 }
 
   
-}
+
 
 async function loadKonfigurasi() {
   if (!selectedAsesmen) return;
