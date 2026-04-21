@@ -339,19 +339,21 @@ async function loadToken() {
     .select("token")
     .eq("id_asesmen", selectedAsesmen)
     .eq("status", true)
-    .order("dibuat_pada", { ascending: false }) // 🔥 pakai kolom yang bener
-    .limit(1);
+    .order("created_at", { ascending: false }) // pastikan kolom ini ada
+    .limit(1) // 🔥 WAJIB biar gak double
+    .maybeSingle();
 
   if (error) {
-    console.log("❌ ERROR TOKEN:", error);
+    console.log("❌ ERROR TOKEN:", error.message, error.details);
     return;
   }
 
-  if (data && data.length > 0) {
-    setToken(data[0].token);
-  } else {
-    setToken("");
-  }
+  // 🔥 ANTI RERENDER SIA-SIA (biar gak flicker / ketiban polling)
+  setToken((prev) => {
+    const newToken = data?.token || "";
+    if (prev === newToken) return prev;
+    return newToken;
+  });
 }
 
 // 🔥 AUTO LOAD TOKEN SETIAP BALIK / CHANGE STATE
@@ -474,31 +476,39 @@ useEffect(() => {
     result += chars[Math.floor(Math.random() * chars.length)];
   }
 
-  // 🔥 HARD RESET (tanpa filter status)
+  // 🔥 1. MATIKAN SEMUA TOKEN LAMA
   const { error: resetError } = await supabase
     .from("token_ujian")
     .update({ status: false })
-    .eq("id_asesmen", selectedAsesmen);
+    .eq("id_asesmen", selectedAsesmen)
+    .select(); // 🔥 penting
 
   if (resetError) {
     console.log("❌ RESET TOKEN ERROR:", resetError);
     return;
   }
 
-  // 🔥 INSERT BARU
-  const { error: insertError } = await supabase
+  // 🔥 2. INSERT TOKEN BARU
+  const { data, error: insertError } = await supabase
     .from("token_ujian")
     .insert({
       id_asesmen: selectedAsesmen,
       token: result,
       status: true,
-    });
+    })
+    .select()
+    .single(); // 🔥 ambil hasil langsung
 
   if (insertError) {
     console.log("❌ INSERT TOKEN ERROR:", insertError);
-  } else {
-    setToken(result);
+    return;
   }
+
+  // 🔥 3. SET DARI HASIL DB (ANTI KETIMPA)
+  setToken(data.token);
+
+  // 🔥 4. OPTIONAL: SYNC ULANG (kalau masih bandel)
+  // await loadToken();
 }
 
   // ===============================
