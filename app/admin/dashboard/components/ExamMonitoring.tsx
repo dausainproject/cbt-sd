@@ -258,50 +258,38 @@ const result: Monitoring[] = siswa.map((s) => {
 
   const sesiFix = Number(sesi);
 
-  // 🔥 1. MATIKAN UJIAN
-  const { error } = await supabase
+  // 1. STOP UJIAN
+  await supabase
     .from("ujian_aktif")
-    .update({
-      status: "selesai",
-    })
+    .update({ status: "selesai" })
     .eq("id_asesmen", selectedAsesmen)
     .eq("sesi", sesiFix);
 
-  if (error) {
-    console.log("❌ ERROR STOP UJIAN:", error.message, error.details);
+  // 2. 🔥 MATIKAN SEMUA TOKEN (FIX)
+  const { error: errToken } = await supabase
+    .from("token_ujian")
+    .update({ status: false })
+    .eq("id_asesmen", selectedAsesmen);
+
+  if (errToken) {
+    console.log("❌ ERROR TOKEN:", errToken);
   }
 
-  // 🔥 2. FORCE AUTO SUBMIT
-  const { error: errUpdate } = await supabase
+  // 3. AUTO SUBMIT
+  await supabase
     .from("laporan_ujian")
     .update({ status: "auto_submit" })
     .eq("id_asesmen", selectedAsesmen)
     .eq("sesi", sesiFix)
     .neq("status", "selesai");
 
-  if (errUpdate) {
-    console.log("❌ ERROR AUTO SUBMIT:", errUpdate.message, errUpdate.details);
-  }
-
-  // 🔥 3. MATIKAN TOKEN
-  await supabase
-    .from("token_ujian")
-    .update({ status: false })
-    .eq("id_asesmen", selectedAsesmen);
-
-  // 🔥 4. CLEAR TOKEN CLIENT
+  // 4. CLEAR UI
   setToken("");
-  localStorage.removeItem("token_ujian");
-
-  // 🔥 5. UPDATE STATE
   setUjianAktif(false);
-
-  // 🔥 6. RESET DURASI KE DEFAULT
   setDurasi(60);
 
   alert("Ujian dihentikan");
 
-  // 🔥 7. RELOAD DATA
   await loadPeserta();
 }
 
@@ -350,21 +338,19 @@ async function loadToken() {
     .from("token_ujian")
     .select("token")
     .eq("id_asesmen", selectedAsesmen)
-    .eq("status", true) // 🔥 INI KUNCI NYA
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .eq("status", true)
+    .order("dibuat_pada", { ascending: false }) // 🔥 pakai kolom yang bener
+    .limit(1);
 
   if (error) {
-    console.log("❌ ERROR TOKEN:", error.message, error.details);
+    console.log("❌ ERROR TOKEN:", error);
     return;
   }
 
-  if (data?.token) {
-    setToken(data.token);
-    localStorage.setItem("token_ujian", data.token);
+  if (data && data.length > 0) {
+    setToken(data[0].token);
   } else {
-    setToken(""); // 🔥 JANGAN AMBIL DARI LOCALSTORAGE LAGI
+    setToken("");
   }
 }
 
@@ -479,23 +465,28 @@ useEffect(() => {
   
 
   async function generateToken() {
+  if (!selectedAsesmen) return;
+
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let result = "";
 
   for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars[Math.floor(Math.random() * chars.length)];
   }
 
-  if (!selectedAsesmen) return;
-
-  // 🔥 1. MATIKAN TOKEN LAMA
-  await supabase
+  // 🔥 HARD RESET (tanpa filter status)
+  const { error: resetError } = await supabase
     .from("token_ujian")
     .update({ status: false })
     .eq("id_asesmen", selectedAsesmen);
 
-  // 🔥 2. INSERT TOKEN BARU
-  const { error } = await supabase
+  if (resetError) {
+    console.log("❌ RESET TOKEN ERROR:", resetError);
+    return;
+  }
+
+  // 🔥 INSERT BARU
+  const { error: insertError } = await supabase
     .from("token_ujian")
     .insert({
       id_asesmen: selectedAsesmen,
@@ -503,10 +494,10 @@ useEffect(() => {
       status: true,
     });
 
-  if (error) {
-    console.log("❌ ERROR GENERATE TOKEN:", error.message, error.details);
+  if (insertError) {
+    console.log("❌ INSERT TOKEN ERROR:", insertError);
   } else {
-    setToken(result); // 🔥 INI KUNCI NYA (biar langsung tampil)
+    setToken(result);
   }
 }
 
