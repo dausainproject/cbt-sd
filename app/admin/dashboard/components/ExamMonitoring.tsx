@@ -63,7 +63,7 @@ useEffect(() => {
   const { data } = await supabase
     .from("data_asesmen")
     .select("*")
-    .limit(1)
+    .limit(5)
     .single();
 
   if (data) {
@@ -362,7 +362,7 @@ async function loadToken() {
     .eq("id_asesmen", selectedAsesmen)
     .eq("status", true)
     .order("created_at", { ascending: false })
-    .limit(1)
+    .limit(5)
     .maybeSingle();
 
   if (error) {
