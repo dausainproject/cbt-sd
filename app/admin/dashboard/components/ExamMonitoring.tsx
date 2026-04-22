@@ -249,6 +249,7 @@ const result: Monitoring[] = siswa.map((s) => {
 } else {
     alert("Ujian dimulai");
     setUjianAktif(true);
+	setToken("");
     loadPeserta();
   }
 }
@@ -333,18 +334,34 @@ async function loadKonfigurasi() {
     return;
   }
 
-  if (data) {
-    setJenisSesi(data.jenis_sesi || "utama");
+  // ===============================
+  // ❌ TIDAK ADA DATA UJIAN
+  // ===============================
+  if (!data) {
+    setUjianAktif(false);
+    setToken(""); // 🔥 RESET TOKEN TOTAL
+    setIsFirstLoad(true);
+    return;
+  }
 
-    const isRunning = data.status === "berjalan";
-    setUjianAktif(isRunning);
+  // ===============================
+  // DATA ADA
+  // ===============================
+  const isRunning = data.status === "berjalan";
 
-    // 🔥 AMBIL DURASI HANYA SAAT:
-    // 1. pertama load DAN ada data
-    // 2. ATAU ujian sedang berjalan
-    if (isFirstLoad || isRunning) {
-      setDurasi(data.durasi_menit ?? 60);
-    }
+  setJenisSesi(data.jenis_sesi || "utama");
+  setUjianAktif(isRunning);
+
+  // 🔥 RESET TOKEN kalau tidak aktif
+  if (!isRunning) {
+    setToken("");
+  }
+
+  // ===============================
+  // DURASI HANDLING
+  // ===============================
+  if (isFirstLoad || isRunning) {
+    setDurasi(data.durasi_menit ?? 60);
   }
 
   setIsFirstLoad(false);
@@ -376,10 +393,12 @@ async function loadToken() {
 
 // 🔥 AUTO LOAD TOKEN SETIAP BALIK / CHANGE STATE
 useEffect(() => {
-  loadToken();
-}, [selectedAsesmen, sesi, ujianAktif]);
-
-
+  if (ujianAktif) {
+    loadToken();
+  } else {
+    setToken(""); // 🔥 INI YANG BIKIN KOSONG SAAT START BARU
+  }
+}, [ujianAktif, selectedAsesmen, sesi]);
   // ===============================
   // STATISTIK
   // ===============================
