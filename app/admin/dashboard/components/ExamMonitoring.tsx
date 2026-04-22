@@ -332,43 +332,23 @@ const result: Monitoring[] = siswa.map((s) => {
     console.log("🧪 TOKEN SEBELUM:", before);
 
     // ===============================
-// 3. MATIKAN TOKEN (FIX UTAMA)
-// ===============================
-let killed: any[] | null = null;
+    // 3. MATIKAN TOKEN (FIX UTAMA)
+    // ===============================
+    const { data: killed, error: errToken } = await supabase
+      .from("token_ujian")
+      .update({ status: false })
+      .eq("id_asesmen", id)
+      .eq("sesi", sesiFix)
+      .select();
 
-// 🔥 1. COBA MATIKAN YANG MASIH AKTIF
-const { data: killedActive, error: errToken1 } = await supabase
-  .from("token_ujian")
-  .update({ status: false })
-  .eq("id_asesmen", id)
-  .eq("sesi", sesiFix)
-  .eq("status", true)
-  .select();
+    console.log("🔻 TOKEN DIMATIKAN:", killed);
+    console.log("📊 JUMLAH:", killed?.length);
 
-if (errToken1) {
-  console.log("❌ ERROR TOKEN (ACTIVE):", errToken1);
-} else {
-  killed = killedActive;
-}
-
-// 🔥 2. FALLBACK (PAKSA MATIKAN SEMUA)
-const { data: killedAll, error: errToken2 } = await supabase
-  .from("token_ujian")
-  .update({ status: false })
-  .eq("id_asesmen", id)
-  .eq("sesi", sesiFix)
-  .select();
-
-if (errToken2) {
-  console.log("❌ ERROR TOKEN (FALLBACK):", errToken2);
-  alert("Gagal matikan token (cek RLS)");
-  return;
-}
-
-// 🔥 FINAL RESULT (gabung debug)
-console.log("🔻 TOKEN DIMATIKAN (ACTIVE):", killed);
-console.log("🔻 TOKEN DIMATIKAN (ALL):", killedAll);
-console.log("📊 TOTAL:", (killedAll?.length || 0));
+    if (errToken) {
+      console.log("❌ ERROR TOKEN:", errToken);
+      alert("Gagal matikan token");
+      return;
+    }
 
     // ===============================
     // 4. VALIDASI (ANTI ILUSI)
@@ -481,96 +461,49 @@ async function loadToken() {
   const id = Number(selectedAsesmen);
   const sesiFix = Number(sesi);
 
-  try {
-    const { data, error } = await supabase
-      .from("token_ujian")
-      .select("id, token, status, dibuat_pada, expired_at")
-      .eq("id_asesmen", id)
-      .eq("sesi", sesiFix)
-      .eq("status", true)
-      .order("dibuat_pada", { ascending: false })
-      .limit(1);
+  const { data, error } = await supabase
+    .from("token_ujian")
+    .select("token, status, dibuat_pada")
+    .eq("id_asesmen", id)
+    .eq("sesi", sesiFix)
+    .eq("status", true)
+    .order("dibuat_pada", { ascending: false })
+    .limit(1);
 
-    if (error) {
-      console.log("❌ TOKEN ERROR:", error.message, error.details);
-      setToken("");
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      setToken("");
-      return;
-    }
-
-    const latest = data[0];
-    const now = new Date();
-
-    // ===============================
-    // 🔥 1. ANTI ZOMBIE (EXPIRED)
-    // ===============================
-    if (latest.expired_at) {
-      const expired = new Date(latest.expired_at);
-
-      if (now > expired) {
-        console.log("⛔ TOKEN EXPIRED → AUTO MATIKAN");
-
-        const { error: errUpdate } = await supabase
-          .from("token_ujian")
-          .update({ status: false })
-          .eq("id", latest.id)
-          .eq("id_asesmen", id)   // 🔥 TAMBAHAN SAFETY
-          .eq("sesi", sesiFix);
-
-        if (errUpdate) {
-          console.log("❌ GAGAL MATIKAN TOKEN EXPIRED:", errUpdate);
-        }
-
-        setToken("");
-        return;
-      }
-    }
-
-    // ===============================
-    // 🔥 2. VALIDASI HARI (OPTIONAL)
-    // ===============================
-    const dibuat = new Date(latest.dibuat_pada);
-
-    const isSameDay =
-      dibuat.getDate() === now.getDate() &&
-      dibuat.getMonth() === now.getMonth() &&
-      dibuat.getFullYear() === now.getFullYear();
-
-    if (!isSameDay) {
-      console.log("⚠️ TOKEN LAMA (Beda Hari)");
-      setToken("");
-      return;
-    }
-
-    // ===============================
-    // 🔥 3. VALIDASI UJIAN AKTIF
-    // (BIAR TOKEN GAK MUNCUL SAAT STOP)
-    // ===============================
-    const { data: ujian } = await supabase
-      .from("ujian_aktif")
-      .select("status")
-      .eq("id_asesmen", id)
-      .eq("sesi", sesiFix)
-      .maybeSingle();
-
-    if (!ujian || ujian.status !== "berjalan") {
-      setToken("");
-      return;
-    }
-
-    // ===============================
-    // ✅ TOKEN VALID
-    // ===============================
-    setToken(latest.token);
-
-  } catch (err) {
-    console.log("❌ FATAL ERROR loadToken:", err);
-    setToken("");
+  if (error) {
+    console.log("❌ TOKEN ERROR:", error.message, error.details);
+    return;
   }
+
+  // ===============================
+  // 🔥 VALIDASI EXTRA (ANTI TOKEN LAMA)
+  // ===============================
+  if (!data || data.length === 0) {
+    setToken("");
+    return;
+  }
+
+  const latest = data[0];
+
+  // 🔥 OPTIONAL: VALIDASI UMUR TOKEN (ANTI NYANGKUT HARI SEBELUMNYA)
+  const dibuat = new Date(latest.dibuat_pada);
+  const now = new Date();
+
+  const isSameDay =
+    dibuat.getDate() === now.getDate() &&
+    dibuat.getMonth() === now.getMonth() &&
+    dibuat.getFullYear() === now.getFullYear();
+
+  if (!isSameDay) {
+    // token lama → anggap tidak valid
+    setToken("");
+    return;
+  }
+
+  // ===============================
+  // ✅ SET TOKEN VALID
+  // ===============================
+  setToken(latest.token);
 }
 
 // 🔥 AUTO LOAD TOKEN SETIAP BALIK / CHANGE STATE
@@ -717,57 +650,31 @@ useEffect(() => {
   const id = Number(selectedAsesmen);
   const sesiFix = Number(sesi);
 
-  const now = new Date();
+  // 🔥 1. MATIKAN SEMUA TOKEN LAMA
+  await supabase
+  .from("token_ujian")
+  .update({ status: false })
+  .eq("id_asesmen", id)
+  .eq("sesi", sesiFix)
 
-  // ⏱️ TOKEN BERLAKU 10 MENIT
-  const expired = new Date(now.getTime() + 10 * 60 * 1000);
+  // 🔥 2. INSERT TOKEN BARU (PASTI BARU)
+  const { data, error } = await supabase
+    .from("token_ujian")
+    .insert({
+      id_asesmen: id,
+      sesi: sesiFix,
+      token: result,
+      status: true,
+    })
+    .select()
+    .single();
 
-  try {
-    // ===============================
-    // 🔥 1. MATIKAN TOKEN LAMA
-    // ===============================
-    const { error: errKill } = await supabase
-      .from("token_ujian")
-      .update({ status: false })
-      .eq("id_asesmen", id)
-      .eq("sesi", sesiFix);
-
-    if (errKill) {
-      console.log("❌ GAGAL MATIKAN TOKEN:", errKill);
-      return;
-    }
-
-    // ===============================
-    // 🔥 2. INSERT TOKEN BARU
-    // ===============================
-    const { data, error } = await supabase
-      .from("token_ujian")
-      .insert({
-        id_asesmen: id,
-        sesi: sesiFix,
-        token: result,
-        status: true,
-        dibuat_pada: now,
-        expired_at: expired, // 🔥 INI KUNCI ANTI ZOMBIE
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.log("❌ INSERT TOKEN ERROR:", error.message);
-      return;
-    }
-
-    // ===============================
-    // 🔥 3. SET KE UI
-    // ===============================
-    setToken(data.token);
-
-    console.log("✅ TOKEN BARU:", data);
-
-  } catch (err) {
-    console.log("❌ FATAL ERROR TOKEN:", err);
+  if (error) {
+    console.log("❌ INSERT TOKEN ERROR:", error.message);
+    return;
   }
+
+  setToken(data.token);
 }
 
   // ===============================
