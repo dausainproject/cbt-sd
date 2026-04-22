@@ -304,60 +304,101 @@ const result: Monitoring[] = siswa.map((s) => {
   const id = Number(selectedAsesmen);
   const sesiFix = Number(sesi);
 
-  // 1. STOP UJIAN
-  const { error: errUjian } = await supabase
-    .from("ujian_aktif")
-    .update({ status: "selesai" })
-    .eq("id_asesmen", id)
-    .eq("sesi", sesiFix);
+  try {
+    // ===============================
+    // 1. STOP UJIAN
+    // ===============================
+    const { error: errUjian } = await supabase
+      .from("ujian_aktif")
+      .update({ status: "selesai" })
+      .eq("id_asesmen", id)
+      .eq("sesi", sesiFix);
 
-  if (errUjian) {
-    console.log("❌ ERROR UJIAN:", errUjian);
-    return;
+    if (errUjian) {
+      console.log("❌ ERROR UJIAN:", errUjian);
+      alert("Gagal stop ujian");
+      return;
+    }
+
+    // ===============================
+    // 2. DEBUG TOKEN SEBELUM
+    // ===============================
+    const { data: before } = await supabase
+      .from("token_ujian")
+      .select("*")
+      .eq("id_asesmen", id)
+      .eq("sesi", sesiFix);
+
+    console.log("🧪 TOKEN SEBELUM:", before);
+
+    // ===============================
+    // 3. MATIKAN TOKEN (FIX UTAMA)
+    // ===============================
+    const { data: killed, error: errToken } = await supabase
+      .from("token_ujian")
+      .update({ status: false })
+      .eq("id_asesmen", id)
+      .eq("sesi", sesiFix)
+      .select();
+
+    console.log("🔻 TOKEN DIMATIKAN:", killed);
+    console.log("📊 JUMLAH:", killed?.length);
+
+    if (errToken) {
+      console.log("❌ ERROR TOKEN:", errToken);
+      alert("Gagal matikan token");
+      return;
+    }
+
+    // ===============================
+    // 4. VALIDASI (ANTI ILUSI)
+    // ===============================
+    const { data: after } = await supabase
+      .from("token_ujian")
+      .select("*")
+      .eq("id_asesmen", id)
+      .eq("sesi", sesiFix);
+
+    console.log("🧪 TOKEN SESUDAH:", after);
+
+    const masihAktif = after?.filter(t => t.status === true);
+
+    if (masihAktif && masihAktif.length > 0) {
+      console.log("⚠️ MASIH ADA TOKEN AKTIF:", masihAktif);
+      alert("Token gagal dimatikan (cek RLS / policy)");
+      return;
+    }
+
+    // ===============================
+    // 5. AUTO SUBMIT
+    // ===============================
+    const { error: errSubmit } = await supabase
+      .from("laporan_ujian")
+      .update({ status: "auto_submit" })
+      .eq("id_asesmen", id)
+      .eq("sesi", sesiFix)
+      .neq("status", "selesai");
+
+    if (errSubmit) {
+      console.log("❌ ERROR AUTO SUBMIT:", errSubmit);
+    }
+
+    // ===============================
+    // 6. RESET UI (ANTI BALIK LAGI)
+    // ===============================
+    setUjianAktif(false);
+    setToken("");
+
+    // 🔥 HARD RESET (BIAR GAK KE-RELOAD DARI INTERVAL)
+    setTimeout(() => {
+      setToken("");
+    }, 500);
+
+    alert("Ujian dihentikan ✅");
+
+  } catch (err) {
+    console.log("❌ FATAL ERROR:", err);
   }
-
-  // 🔥 DEBUG DULU (WAJIB)
-  const { data: before } = await supabase
-    .from("token_ujian")
-    .select("*")
-    .eq("id_asesmen", id);
-
-  console.log("🧪 TOKEN SEBELUM:", before);
-
-  // 2. MATIKAN SEMUA TOKEN TANPA SYARAT
-  const { data: killed, error: errToken } = await supabase
-    .from("token_ujian")
-    .update({ status: false })
-    .eq("id_asesmen", id)
-    .select();
-
-  console.log("🔻 TOKEN DIMATIKAN:", killed);
-
-  if (errToken) {
-    console.log("❌ ERROR TOKEN:", errToken);
-    return;
-  }
-
-  // 🔥 DEBUG LAGI
-  const { data: after } = await supabase
-    .from("token_ujian")
-    .select("*")
-    .eq("id_asesmen", id);
-
-  console.log("🧪 TOKEN SESUDAH:", after);
-
-  // 3. AUTO SUBMIT
-  await supabase
-    .from("laporan_ujian")
-    .update({ status: "auto_submit" })
-    .eq("id_asesmen", id)
-    .eq("sesi", sesiFix)
-    .neq("status", "selesai");
-
-  setUjianAktif(false);
-  setToken("");
-
-  alert("Ujian dihentikan");
 }
 
   
