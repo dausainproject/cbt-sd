@@ -194,7 +194,7 @@ const result: Monitoring[] = siswa.map((s) => {
 
   
   
-  aasync function mulaiUjian() {
+  async function mulaiUjian() {
   if (!selectedAsesmen) {
     alert("Pilih asesmen dulu");
     return;
