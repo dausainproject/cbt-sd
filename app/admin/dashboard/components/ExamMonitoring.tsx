@@ -76,121 +76,78 @@ useEffect(() => {
  async function loadPeserta() {
   if (!selectedAsesmen) return;
 
-  // 🔥 1. AMBIL DATA SISWA
-  const { data: siswa, error: errSiswa } = await supabase
-  .from("data_siswa")
-  .select("no_peserta,nama_lengkap")
-  .eq("status", true);
-
-if (errSiswa) {
-  console.log("❌ ERROR SISWA:", errSiswa.message, errSiswa.details);
-  return;
-}
-
-  if (!siswa || siswa.length === 0) {
-    setPeserta([]);
-    return;
-  }
-
   const sesiFix = Number(sesi);
 
-  // 🔥 2. AMBIL LAPORAN
-  const { data: laporan, error: errLaporan } = await supabase
-    .from("laporan_ujian")
-    .select("*")
-    .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", sesiFix)
-    .order("created_at", { ascending: false });
+  try {
+    // ===============================
+    // 1. AMBIL SISWA
+    // ===============================
+    const { data: siswa, error: errSiswa } = await supabase
+      .from("data_siswa")
+      .select("no_peserta, nama_lengkap")
+      .eq("status", true);
 
-  if (errLaporan) {
-  console.log("❌ ERROR LAPORAN:", errLaporan.message, errLaporan.details);
-  }
-
-  // 🔥 3. PRIORITY STATUS (WAJIB ADA DI SINI BIAR AMAN)
-  const priority: Record<string, number> = {
-  selesai: 5,
-  auto_submit: 5,
-  sedang: 3,
-  belum_login: 1,
-};
-
-  // 🔥 4. AMBIL STATUS TERBAIK PER PESERTA
-  const latestMap = new Map<string, any>();
-
-  (laporan || []).forEach((l) => {
-    if (!l?.no_peserta) return;
-
-    const existing = latestMap.get(l.no_peserta);
-
-    if (!existing) {
-      latestMap.set(l.no_peserta, l);
-    } else {
-      const currentPriority = priority[l.status] || 0;
-      const existingPriority = priority[existing.status] || 0;
-
-      // 🔥 AMBIL STATUS PALING KUAT
-      if (currentPriority >= existingPriority) {
-        latestMap.set(l.no_peserta, l);
-      }
+    if (errSiswa) {
+      console.log("❌ ERROR SISWA:", errSiswa.message);
+      return;
     }
-  });
 
-  // 🔥 5. GABUNG KE SISWA (ANTI RESET STATUS)
-const result: Monitoring[] = siswa.map((s) => {
-  const lap = latestMap.get(s.no_peserta);
+    if (!siswa || siswa.length === 0) {
+      setPeserta([]);
+      return;
+    }
 
-  // 🔥 AMBIL DATA LAMA (ANTI RESET)
-  const existing = peserta?.find(p => p.no_peserta === s.no_peserta);
+    // ===============================
+    // 2. AMBIL STATUS FINAL (SOURCE OF TRUTH)
+    // ===============================
+    const { data: laporan, error: errLaporan } = await supabase
+      .from("laporan_ujian")
+      .select("no_peserta, status_final, pelanggaran")
+      .eq("id_asesmen", selectedAsesmen)
+      .eq("sesi", sesiFix);
 
-  if (!lap) {
-    return {
-      no_peserta: s.no_peserta,
-      nama_lengkap: s.nama_lengkap,
-      status: existing?.status || "belum_login",
-      pelanggaran: existing?.pelanggaran || 0,
-    };
+    if (errLaporan) {
+      console.log("❌ ERROR LAPORAN:", errLaporan.message);
+      return;
+    }
+
+    // ===============================
+    // 3. MAP STATUS (FAST LOOKUP)
+    // ===============================
+    const map = new Map(
+      (laporan || []).map((l) => [l.no_peserta, l])
+    );
+
+    // ===============================
+    // 4. BUILD RESULT (NO LOGIC, PURE DATA)
+    // ===============================
+    const result: Monitoring[] = siswa.map((s) => {
+      const lap = map.get(s.no_peserta);
+
+      return {
+        no_peserta: s.no_peserta,
+        nama_lengkap: s.nama_lengkap,
+
+        // 🔥 INI KEY FIX
+        status: lap?.status_final ?? "belum_login",
+
+        pelanggaran: lap?.pelanggaran ?? 0,
+      };
+    });
+
+    // ===============================
+    // 5. SET STATE (NO MERGE, NO PREV, NO BUG)
+    // ===============================
+    setPeserta(result);
+
+    // ===============================
+    // 6. STATISTIK
+    // ===============================
+    hitungStat(result);
+
+  } catch (err) {
+    console.log("❌ FATAL ERROR:", err);
   }
-
-  return {
-    no_peserta: s.no_peserta,
-    nama_lengkap: s.nama_lengkap,
-    status: lap.status,
-    pelanggaran: lap.pelanggaran ?? 0,
-  };
-});
-
-  // 🔥 6. UPDATE UI
-  setPeserta((prev) => {
-  const mapPrev = new Map(prev.map(p => [p.no_peserta, p]));
-
-  const priority: Record<string, number> = {
-  selesai: 5,
-  auto_submit: 5,
-  sedang: 3,
-  belum_login: 1,
-};
-
-  const finalData = result.map((r) => {
-  const old = mapPrev.get(r.no_peserta);
-  if (!old) return r;
-
-  // 🔒 kalau sudah final → jangan pernah turun
-  if (old.status === "selesai" || old.status === "auto_submit") {
-    return old;
-  }
-
-  const newP = priority[r.status] ?? 0;
-  const oldP = priority[old.status] ?? 0;
-
-  if (newP < oldP) return old;
-  return r;
-});
-
-  // 🔥 PINDAH KE SINI
-  hitungStat(finalData);
-
-  return finalData;
-});
 }
 
   
