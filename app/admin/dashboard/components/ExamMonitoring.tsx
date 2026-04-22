@@ -31,7 +31,7 @@ export default function ExamMonitoring() {
   const [token, setToken] = useState("");
   const [peserta, setPeserta] = useState<Monitoring[]>([]);
   const [search, setSearch] = useState("");
-
+const [loading, setLoading] = useState(false);
   const [statLogin, setStatLogin] = useState(0);
   const [statSedang, setStatSedang] = useState(0);
   const [statSelesai, setStatSelesai] = useState(0);
@@ -42,6 +42,7 @@ export default function ExamMonitoring() {
 const [jenisSesi, setJenisSesi] = useState("utama");
 const [isFirstLoad, setIsFirstLoad] = useState(true);
 const isTokenActive = ujianAktif && token;
+
   // ===============================
   // LOAD KELAS
   // ===============================
