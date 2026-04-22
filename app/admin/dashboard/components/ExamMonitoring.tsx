@@ -76,16 +76,18 @@ useEffect(() => {
  async function loadPeserta() {
   if (!selectedAsesmen) return;
 
-  // 🔥 1. AMBIL DATA SISWA
+  // ===============================
+  // 1. AMBIL DATA SISWA
+  // ===============================
   const { data: siswa, error: errSiswa } = await supabase
-  .from("data_siswa")
-  .select("no_peserta,nama_lengkap")
-  .eq("status", true);
+    .from("data_siswa")
+    .select("no_peserta,nama_lengkap")
+    .eq("status", true);
 
-if (errSiswa) {
-  console.log("❌ ERROR SISWA:", errSiswa.message, errSiswa.details);
-  return;
-}
+  if (errSiswa) {
+    console.log("❌ ERROR SISWA:", errSiswa.message, errSiswa.details);
+    return;
+  }
 
   if (!siswa || siswa.length === 0) {
     setPeserta([]);
@@ -94,103 +96,91 @@ if (errSiswa) {
 
   const sesiFix = Number(sesi);
 
-  // 🔥 2. AMBIL LAPORAN
+  // ===============================
+  // 2. AMBIL LAPORAN (PAKAI status_final)
+  // ===============================
   const { data: laporan, error: errLaporan } = await supabase
     .from("laporan_ujian")
-    .select("*")
+    .select("no_peserta, status_final, pelanggaran")
     .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", sesiFix)
-    .order("created_at", { ascending: false });
+    .eq("sesi", sesiFix);
 
   if (errLaporan) {
-  console.log("❌ ERROR LAPORAN:", errLaporan.message, errLaporan.details);
+    console.log("❌ ERROR LAPORAN:", errLaporan.message, errLaporan.details);
   }
 
-  // 🔥 3. PRIORITY STATUS (WAJIB ADA DI SINI BIAR AMAN)
+  // ===============================
+  // 3. PRIORITY STATUS
+  // ===============================
   const priority: Record<string, number> = {
-  selesai: 5,
-  auto_submit: 5,
-  sedang: 3,
-  belum_login: 1,
-};
+    selesai: 5,
+    auto_submit: 5,
+    sedang: 3,
+    belum_login: 1,
+  };
 
-  // 🔥 4. AMBIL STATUS TERBAIK PER PESERTA
-  const latestMap = new Map<string, any>();
+  // ===============================
+  // 4. MAP STATUS TERAKHIR (DB ONLY)
+  // ===============================
+  const statusMap = new Map<string, any>();
 
   (laporan || []).forEach((l) => {
     if (!l?.no_peserta) return;
 
-    const existing = latestMap.get(l.no_peserta);
+    const existing = statusMap.get(l.no_peserta);
 
     if (!existing) {
-      latestMap.set(l.no_peserta, l);
+      statusMap.set(l.no_peserta, l);
     } else {
-      const currentPriority = priority[l.status] || 0;
-      const existingPriority = priority[existing.status] || 0;
+      const newP = priority[l.status_final] ?? 0;
+      const oldP = priority[existing.status_final] ?? 0;
 
-      // 🔥 AMBIL STATUS PALING KUAT
-      if (currentPriority >= existingPriority) {
-        latestMap.set(l.no_peserta, l);
+      if (newP >= oldP) {
+        statusMap.set(l.no_peserta, l);
       }
     }
   });
 
-  // 🔥 5. GABUNG KE SISWA (ANTI RESET STATUS)
-const result: Monitoring[] = siswa.map((s) => {
-  const lap = latestMap.get(s.no_peserta);
+  // ===============================
+  // 5. BENTUK DATA FINAL (NO STATE DEPENDENCY)
+  // ===============================
+  const freshData: Monitoring[] = siswa.map((s) => {
+    const lap = statusMap.get(s.no_peserta);
 
-  // 🔥 AMBIL DATA LAMA (ANTI RESET)
-  const existing = peserta?.find(p => p.no_peserta === s.no_peserta);
-
-  if (!lap) {
     return {
       no_peserta: s.no_peserta,
       nama_lengkap: s.nama_lengkap,
-      status: existing?.status || "belum_login",
-      pelanggaran: existing?.pelanggaran || 0,
+      status: lap?.status_final || "belum_login",
+      pelanggaran: lap?.pelanggaran ?? 0,
     };
-  }
+  });
 
-  return {
-    no_peserta: s.no_peserta,
-    nama_lengkap: s.nama_lengkap,
-    status: lap.status,
-    pelanggaran: lap.pelanggaran ?? 0,
-  };
-});
-
-  // 🔥 6. UPDATE UI
+  // ===============================
+  // 6. MERGE DENGAN STATE (ANTI TURUN)
+  // ===============================
   setPeserta((prev) => {
-  const mapPrev = new Map(prev.map(p => [p.no_peserta, p]));
+    const mapPrev = new Map(prev.map(p => [p.no_peserta, p]));
 
-  const priority: Record<string, number> = {
-  selesai: 5,
-  auto_submit: 5,
-  sedang: 3,
-  belum_login: 1,
-};
+    const finalData = freshData.map((f) => {
+      const old = mapPrev.get(f.no_peserta);
+      if (!old) return f;
 
-  const finalData = result.map((r) => {
-  const old = mapPrev.get(r.no_peserta);
-  if (!old) return r;
+      // 🔒 LOCK kalau sudah selesai
+      if (old.status === "selesai" || old.status === "auto_submit") {
+        return old;
+      }
 
-  // 🔒 kalau sudah final → jangan pernah turun
-  if (old.status === "selesai" || old.status === "auto_submit") {
-    return old;
-  }
+      const newP = priority[f.status] ?? 0;
+      const oldP = priority[old.status] ?? 0;
 
-  const newP = priority[r.status] ?? 0;
-  const oldP = priority[old.status] ?? 0;
+      if (newP < oldP) return old;
 
-  if (newP < oldP) return old;
-  return r;
-});
+      return f;
+    });
 
-  // 🔥 PINDAH KE SINI
-  hitungStat(finalData);
-
-  return finalData;
-});
+    hitungStat(finalData);
+    return finalData;
+  });
 }
 
   
