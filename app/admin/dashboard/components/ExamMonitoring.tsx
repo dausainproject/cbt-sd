@@ -194,24 +194,58 @@ const result: Monitoring[] = siswa.map((s) => {
 
   
   
-  async function mulaiUjian() {
+  aasync function mulaiUjian() {
   if (!selectedAsesmen) {
     alert("Pilih asesmen dulu");
     return;
   }
 
-  // 🔥 WAJIB ADA TOKEN DULU
+  const id = Number(selectedAsesmen);
+  const sesiFix = Number(sesi);
+
+  // 🔥 WAJIB ADA TOKEN DULU (VALIDASI)
   if (!token) {
     alert("Rilis token dulu!");
     return;
   }
 
-  // 🔥 CEK DATA UJIAN AKTIF
+  // ===============================
+  // 🔥 MATIKAN SEMUA TOKEN LAMA (ANTI NYANGKUT)
+  // ===============================
+  const { error: errKill } = await supabase
+    .from("token_ujian")
+    .update({ status: false })
+    .eq("id_asesmen", id)
+    .eq("sesi", sesiFix);
+
+  if (errKill) {
+    console.log("❌ GAGAL MATIKAN TOKEN LAMA:", errKill.message);
+    return;
+  }
+
+  // ===============================
+  // 🔥 AKTIFKAN TOKEN YANG DIPILIH (YANG BARUSAN DIBUAT)
+  // ===============================
+  const { error: errActivate } = await supabase
+    .from("token_ujian")
+    .update({ status: true })
+    .eq("id_asesmen", id)
+    .eq("sesi", sesiFix)
+    .eq("token", token);
+
+  if (errActivate) {
+    console.log("❌ GAGAL AKTIFKAN TOKEN:", errActivate.message);
+    return;
+  }
+
+  // ===============================
+  // 🔥 CEK / UPSERT UJIAN AKTIF
+  // ===============================
   const { data: existing } = await supabase
     .from("ujian_aktif")
     .select("*")
-    .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", Number(sesi))
+    .eq("id_asesmen", id)
+    .eq("sesi", sesiFix)
     .maybeSingle();
 
   let error;
@@ -225,33 +259,42 @@ const result: Monitoring[] = siswa.map((s) => {
         status: "berjalan",
         jenis_sesi: jenisSesi
       })
-      .eq("id_asesmen", selectedAsesmen)
-      .eq("sesi", Number(sesi));
+      .eq("id_asesmen", id)
+      .eq("sesi", sesiFix);
 
     error = res.error;
   } else {
     const res = await supabase
       .from("ujian_aktif")
       .insert({
-        id_asesmen: selectedAsesmen,
+        id_asesmen: id,
         waktu_mulai: new Date(),
         durasi_menit: durasi,
         status: "berjalan",
-        sesi: sesi,
+        sesi: sesiFix,
         jenis_sesi: jenisSesi
       });
 
     error = res.error;
   }
 
+  // ===============================
+  // 🔥 HANDLE RESULT
+  // ===============================
   if (error) {
-  console.log("❌ ERROR MULAI:", error.message, error.details);
-} else {
-    alert("Ujian dimulai");
-    setUjianAktif(true);
-	setToken("");
-    loadPeserta();
+    console.log("❌ ERROR MULAI:", error.message, error.details);
+    return;
   }
+
+  alert("Ujian dimulai");
+
+  // 🔥 SET STATE
+  setUjianAktif(true);
+
+  // 🔥 PENTING: jangan tampilkan token lama
+  setToken("");
+
+  loadPeserta();
 }
   
  async function stopUjian() {
@@ -373,22 +416,52 @@ async function loadKonfigurasi() {
 async function loadToken() {
   if (!selectedAsesmen) return;
 
+  const id = Number(selectedAsesmen);
+  const sesiFix = Number(sesi);
+
   const { data, error } = await supabase
     .from("token_ujian")
     .select("token, status, dibuat_pada")
-    .eq("id_asesmen", selectedAsesmen)
-    .eq("sesi", sesi)
+    .eq("id_asesmen", id)
+    .eq("sesi", sesiFix)
     .eq("status", true)
     .order("dibuat_pada", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
   if (error) {
-    console.log("TOKEN ERROR:", error);
+    console.log("❌ TOKEN ERROR:", error.message, error.details);
     return;
   }
 
-  setToken(data?.token ?? "");
+  // ===============================
+  // 🔥 VALIDASI EXTRA (ANTI TOKEN LAMA)
+  // ===============================
+  if (!data || data.length === 0) {
+    setToken("");
+    return;
+  }
+
+  const latest = data[0];
+
+  // 🔥 OPTIONAL: VALIDASI UMUR TOKEN (ANTI NYANGKUT HARI SEBELUMNYA)
+  const dibuat = new Date(latest.dibuat_pada);
+  const now = new Date();
+
+  const isSameDay =
+    dibuat.getDate() === now.getDate() &&
+    dibuat.getMonth() === now.getMonth() &&
+    dibuat.getFullYear() === now.getFullYear();
+
+  if (!isSameDay) {
+    // token lama → anggap tidak valid
+    setToken("");
+    return;
+  }
+
+  // ===============================
+  // ✅ SET TOKEN VALID
+  // ===============================
+  setToken(latest.token);
 }
 
 // 🔥 AUTO LOAD TOKEN SETIAP BALIK / CHANGE STATE
@@ -413,8 +486,27 @@ useEffect(() => {
   }
 
 useEffect(() => {
-  loadPeserta();
-}, [selectedAsesmen, sesi]); // ✅ TAMBAH SESI
+  if (!selectedAsesmen) return;
+
+  const init = async () => {
+    setLoading(true);
+
+    // 🔥 reset dulu (biar gak nyampur sesi lama)
+    setPeserta([]);
+    setToken("");
+    setStatLogin(0);
+    setStatSedang(0);
+    setStatSelesai(0);
+    setStatWarning(0);
+
+    // 🔥 load data baru
+    await loadPeserta();
+
+    setLoading(false);
+  };
+
+  init();
+}, [selectedAsesmen, sesi]);
 
 useEffect(() => {
   if (!selectedAsesmen) return;
