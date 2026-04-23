@@ -191,13 +191,14 @@ useEffect(() => {
     const { error } = await supabase
   .from("laporan_ujian")
   .upsert(
-    {
-      no_peserta: noPeserta,
-      id_asesmen: Number(id),
-      sesi: sesi,
-      status: "sedang",
-      pelanggaran: 0
-    },
+  {
+    no_peserta: noPeserta,
+    id_asesmen: Number(id),
+    sesi: sesi,
+    status: "sedang",
+    status_final: "sedang", // 🔥 TAMBAH INI
+    pelanggaran: 0
+  },
     {
       onConflict: "no_peserta,id_asesmen,sesi"
     }
@@ -454,18 +455,19 @@ async function handleAutoSubmit() {
     const { error: errInsert } = await supabase
       .from("laporan_ujian")
       .upsert(
-        {
-          id_asesmen: Number(id),
-          no_peserta: String(noPeserta),
-          nilai: nilaiAkhir,
-          jumlah_benar: totalPoint,
-          jumlah_benar_soal: benarSoal,
-          jumlah_salah: jumlahSalah,
-          jumlah_kosong: jumlahKosong,
-          status: isAuto ? "auto_submit" : "selesai",
-          sesi: sesi,
-          selesai_pada: new Date().toISOString(),
-        },
+  {
+    id_asesmen: Number(id),
+    no_peserta: String(noPeserta),
+    nilai: nilaiAkhir,
+    jumlah_benar: totalPoint,
+    jumlah_benar_soal: benarSoal,
+    jumlah_salah: jumlahSalah,
+    jumlah_kosong: jumlahKosong,
+    status: isAuto ? "auto_submit" : "selesai",
+    status_final: isAuto ? "auto_submit" : "selesai", // 🔥 INI KUNCI
+    sesi: sesi,
+    selesai_pada: new Date().toISOString(),
+  },
         { onConflict: "no_peserta,id_asesmen,sesi" }
       );
 
