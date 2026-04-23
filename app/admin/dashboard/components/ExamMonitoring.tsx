@@ -364,7 +364,10 @@ useEffect(() => {
     // ===============================
     const { error: errSubmit } = await supabase
       .from("laporan_ujian")
-      .update({ status: "auto_submit" })
+      .update({ 
+  status: "auto_submit",
+  status_final: "auto_submit"
+})
       .eq("id_asesmen", id)
       .eq("sesi", sesiFix)
       .neq("status", "selesai");
@@ -569,7 +572,7 @@ const priority: Record<string, number> = {
 // 🔥 TYPE FIX
 type LaporanRealtime = {
   no_peserta: string;
-  status: string;
+  status_final: string;
   pelanggaran: number;
   sesi: number;
   id_asesmen: number;
@@ -597,13 +600,13 @@ useEffect(() => {
           const updated = prev.map((p) => {
             if (p.no_peserta !== newData.no_peserta) return p;
 
-            const currentPriority = priority[newData.status] || 0;
-            const existingPriority = priority[p.status] || 0;
+            const currentPriority = priority[newData.status_final] || 0;
+			const existingPriority = priority[p.status] || 0;
 
             if (currentPriority >= existingPriority) {
               return {
                 ...p,
-                status: newData.status,
+                status: newData.status_final,
                 pelanggaran: newData.pelanggaran ?? 0,
               };
             }
