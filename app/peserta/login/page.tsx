@@ -82,15 +82,16 @@ export default function LoginPeserta() {
   // =========================
   // 🔥 UPDATE STATUS JADI SEDANG
   // =========================
-  await supabase
-    .from("laporan_ujian")
-    .upsert({
-      no_peserta: siswa.no_peserta,
-      id_asesmen: laporan?.id_asesmen || 1, // fallback
-      sesi: laporan?.sesi || 1,
-      status: "sedang",
-      pelanggaran: laporan?.pelanggaran || 0,
-    });
+ await supabase
+  .from("laporan_ujian")
+  .upsert({
+    no_peserta: siswa.no_peserta,
+    id_asesmen: laporan?.id_asesmen || 1,
+    sesi: laporan?.sesi || 1,
+    status: "sedang",
+    status_final: "sedang", // 🔥 INI YANG KURANG
+    pelanggaran: laporan?.pelanggaran || 0,
+  });
 
   console.log("Login/resume:", siswa.no_peserta);
 
