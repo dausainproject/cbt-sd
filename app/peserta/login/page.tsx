@@ -10,7 +10,10 @@ export default function LoginPeserta() {
   const [noPeserta, setNoPeserta] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<{
+  message: string;
+  type: "error" | "warning";
+} | null>(null);
 
  const handleLogin = async () => {
   setLoading(true);
@@ -35,7 +38,10 @@ export default function LoginPeserta() {
   }
 
   if (siswa.password !== password) {
-    setError("Password salah");
+    setError({
+  message: "Password salah",
+  type: "error",
+});
     setLoading(false);
     return;
   }
@@ -68,7 +74,13 @@ if (
   (laporan.status_final === "selesai" ||
    laporan.status_final === "auto_submit")
 ) {
-  setError("Anda sudah menyelesaikan ujian");
+  setError({
+  message:
+    laporan.status_final === "auto_submit"
+      ? "Waktu ujian sudah habis. Jawaban telah dikumpulkan otomatis."
+      : "Ujian sudah selesai. Anda tidak dapat mengerjakan kembali.",
+  type: "warning",
+});
   setLoading(false);
   return;
 }
@@ -144,8 +156,27 @@ if (
         />
 
         {error && (
-          <p className="text-red-500 text-sm mb-4">{error}</p>
-        )}
+  <div
+    className={`mb-4 p-4 rounded-lg border flex items-start gap-3 animate-fadeIn ${
+      error.type === "error"
+        ? "bg-red-50 border-red-300 text-red-700"
+        : "bg-yellow-50 border-yellow-300 text-yellow-700"
+    }`}
+  >
+    {/* ICON */}
+    <div className="text-xl">
+      {error.type === "error" ? "❌" : "⚠️"}
+    </div>
+
+    {/* TEXT */}
+    <div>
+      <p className="font-semibold">
+        {error.type === "error" ? "Login Gagal" : "Peringatan"}
+      </p>
+      <p className="text-sm">{error.message}</p>
+    </div>
+  </div>
+)}
 
         <button
           onClick={handleLogin}
