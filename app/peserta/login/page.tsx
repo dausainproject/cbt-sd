@@ -17,10 +17,13 @@ export default function LoginPeserta() {
 
  const handleLogin = async () => {
   setLoading(true);
-  setError("");
+  setError(null);
 
   if (!noPeserta || !password) {
-    setError("No peserta dan password wajib diisi");
+    setError({
+  message: "No peserta dan password wajib diisi",
+  type: "error",
+});
     setLoading(false);
     return;
   }
@@ -32,7 +35,10 @@ export default function LoginPeserta() {
     .single();
 
   if (!siswa) {
-    setError("No peserta tidak ditemukan");
+    setError({
+  message: "No peserta tidak ditemukan",
+  type: "error",
+});
     setLoading(false);
     return;
   }
@@ -47,7 +53,10 @@ export default function LoginPeserta() {
   }
 
   if (!siswa.status) {
-    setError("Akun tidak aktif");
+    setError({
+  message: "Akun tidak aktif",
+  type: "error",
+});
     setLoading(false);
     return;
   }
