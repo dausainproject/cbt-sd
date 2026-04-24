@@ -60,11 +60,18 @@ export default function LoginPeserta() {
   // =========================
   // 🔥 LOGIC RESUME
   // =========================
-  if (laporan && laporan.status === "selesai") {
-    setError("Anda sudah menyelesaikan ujian");
-    setLoading(false);
-    return;
-  }
+  // =========================
+// 🔥 CEK STATUS FINAL (LOCK)
+// =========================
+if (
+  laporan &&
+  (laporan.status_final === "selesai" ||
+   laporan.status_final === "auto_submit")
+) {
+  setError("Anda sudah menyelesaikan ujian");
+  setLoading(false);
+  return;
+}
 
   // =========================
   // 🔥 SIMPAN SESSION
@@ -82,16 +89,30 @@ export default function LoginPeserta() {
   // =========================
   // 🔥 UPDATE STATUS JADI SEDANG
   // =========================
- await supabase
-  .from("laporan_ujian")
-  .upsert({
-    no_peserta: siswa.no_peserta,
-    id_asesmen: laporan?.id_asesmen || 1,
-    sesi: laporan?.sesi || 1,
-    status: "sedang",
-    status_final: "sedang", // 🔥 INI YANG KURANG
-    pelanggaran: laporan?.pelanggaran || 0,
-  });
+ // =========================
+// 🔥 JANGAN OVERWRITE YANG SUDAH SELESAI
+// =========================
+if (
+  !laporan ||
+  laporan.status_final === "sedang" ||
+  laporan.status_final === "belum_login"
+) {
+  await supabase
+    .from("laporan_ujian")
+    .upsert(
+      {
+        no_peserta: siswa.no_peserta,
+        id_asesmen: laporan?.id_asesmen || 1,
+        sesi: laporan?.sesi || 1,
+        status: "sedang",
+        status_final: "sedang",
+        pelanggaran: laporan?.pelanggaran || 0,
+      },
+      {
+        onConflict: "no_peserta,id_asesmen,sesi",
+      }
+    );
+}
 
   console.log("Login/resume:", siswa.no_peserta);
 
