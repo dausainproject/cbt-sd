@@ -177,36 +177,53 @@ useEffect(() => {
     if (!id || !sesi || statusInserted) return;
 
     const noPeserta = localStorage.getItem("no_peserta");
-    if (!noPeserta) {
-      console.log("NO PESERTA BELUM ADA");
+    if (!noPeserta) return;
+
+    // =========================
+    // 🔥 AMBIL STATUS TERAKHIR
+    // =========================
+    const { data: laporan } = await supabase
+      .from("laporan_ujian")
+      .select("status_final")
+      .eq("no_peserta", noPeserta)
+      .eq("id_asesmen", Number(id))
+      .eq("sesi", sesi)
+      .maybeSingle();
+
+    // =========================
+    // 🔒 KUNCI: JANGAN TIMPA YANG SUDAH SELESAI
+    // =========================
+    if (
+      laporan &&
+      (laporan.status_final === "selesai" ||
+       laporan.status_final === "auto_submit")
+    ) {
+      console.log("⛔ SUDAH SELESAI, BLOK MASUK");
+      router.push("/peserta/dashboard");
       return;
     }
 
-    console.log("COBA INSERT STATUS:", {
-      id,
-      sesi,
-      noPeserta
-    });
+    // =========================
+    // ✅ LANJUT SET SEDANG
+    // =========================
+    await supabase
+      .from("laporan_ujian")
+      .upsert(
+        {
+          no_peserta: noPeserta,
+          id_asesmen: Number(id),
+          sesi: sesi,
+          status: "sedang",
+          status_final: "sedang",
+          pelanggaran: 0,
+        },
+        {
+          onConflict: "no_peserta,id_asesmen,sesi",
+        }
+      );
 
-    const { error } = await supabase
-  .from("laporan_ujian")
-  .upsert(
-  {
-    no_peserta: noPeserta,
-    id_asesmen: Number(id),
-    sesi: sesi,
-    status: "sedang",
-    status_final: "sedang", // 🔥 TAMBAH INI
-    pelanggaran: 0
-  },
-    {
-      onConflict: "no_peserta,id_asesmen,sesi"
-    }
-  );
-
-if (error) {
-  console.log("❌ ERROR DETAIL:", error);
-}
+    // 🔥 PENTING: LOCK BIAR GAK LOOP
+    setStatusInserted(true);
   };
 
   insertStatus();
