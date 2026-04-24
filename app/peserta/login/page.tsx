@@ -28,20 +28,32 @@ export default function LoginPeserta() {
     return;
   }
 
-  const { data: siswa } = await supabase
-    .from("data_siswa")
-    .select("*")
-    .eq("no_peserta", noPeserta)
-    .single();
+  const { data: siswa, error: errSiswa } = await supabase
+  .from("data_siswa")
+  .select("*")
+  .eq("no_peserta", noPeserta)
+  .maybeSingle();
 
-  if (!siswa) {
-    setError({
-  message: "No peserta tidak ditemukan",
-  type: "error",
-});
-    setLoading(false);
-    return;
-  }
+  if (errSiswa) {
+  console.log("ERROR SUPABASE:", errSiswa);
+
+  setError({
+    message: "Terjadi kesalahan saat login. Coba lagi.",
+    type: "error",
+  });
+
+  setLoading(false);
+  return;
+}
+
+if (!siswa) {
+  setError({
+    message: "No peserta tidak ditemukan",
+    type: "error",
+  });
+  setLoading(false);
+  return;
+}
 
   if (siswa.password !== password) {
     setError({
