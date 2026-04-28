@@ -73,6 +73,28 @@ if (!siswa) {
     return;
   }
 
+
+// =========================
+// 🔥 CEK UJIAN AKTIF
+// =========================
+const { data: ujian } = await supabase
+  .from("ujian_aktif")
+  .select("*")
+  .eq("id_asesmen", 1) // ⚠️ nanti bisa dinamis
+  .eq("sesi", 1)
+  .maybeSingle();
+
+if (!ujian || ujian.status !== "berlangsung") {
+  setError({
+    message: "Ujian belum dimulai atau sudah selesai",
+    type: "warning",
+  });
+  setLoading(false);
+  return;
+}
+
+
+
   // =========================
   // 🔥 CEK STATUS UJIAN
   // =========================
@@ -90,11 +112,23 @@ if (!siswa) {
   // =========================
 // 🔥 CEK STATUS FINAL (LOCK)
 // =========================
+// =========================
+// 🔒 FINAL LOCK (WAJIB)
+// =========================
 if (
   laporan &&
-  (laporan.status_final === "selesai" ||
-   laporan.status_final === "auto_submit")
+  ["selesai", "auto_submit"].includes(laporan.status_final)
 ) {
+  setError({
+    message:
+      laporan.status_final === "auto_submit"
+        ? "Waktu ujian habis, jawaban sudah dikumpulkan"
+        : "Ujian sudah selesai",
+    type: "warning",
+  });
+  setLoading(false);
+  return;
+} {
   setError({
   message:
     laporan.status_final === "auto_submit"
@@ -105,7 +139,21 @@ if (
   setLoading(false);
   return;
 }
-
+// =========================
+// 🔒 HARD LOCK KOMBINASI
+// =========================
+if (
+  siswa.status === false &&
+  laporan &&
+  ["selesai", "auto_submit"].includes(laporan.status_final)
+) {
+  setError({
+    message: "Akun tidak aktif dan ujian sudah selesai",
+    type: "error",
+  });
+  setLoading(false);
+  return;
+}
   // =========================
   // 🔥 SIMPAN SESSION
   // =========================
@@ -115,7 +163,7 @@ if (
   // =========================
   // 🔥 JANGAN HAPUS JAWABAN kalau sedang ujian
   // =========================
-  if (!laporan || laporan.status !== "sedang") {
+  if (!laporan || laporan.status_final !== "sedang") {
     localStorage.removeItem("jawaban_ujian");
   }
 
@@ -127,9 +175,8 @@ if (
 // =========================
 if (
   !laporan ||
-  laporan.status_final === "sedang" ||
-  laporan.status_final === "belum_login"
-) {
+  ["sedang", "belum_login"].includes(laporan.status_final)
+) { {
   await supabase
     .from("laporan_ujian")
     .upsert(
