@@ -172,7 +172,7 @@ if (
 if (
   !laporan ||
   ["sedang", "belum_login"].includes(laporan.status_final)
-) { {
+) {
   await supabase
     .from("laporan_ujian")
     .upsert(
