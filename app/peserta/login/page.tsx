@@ -115,35 +115,31 @@ if (!ujian || ujian.status !== "berlangsung") {
 // =========================
 // 🔒 FINAL LOCK (WAJIB)
 // =========================
-if (
-  laporan &&
-  ["selesai", "auto_submit"].includes(laporan.status_final)
-) {
+if (laporan && laporan.status_final === "auto_submit") {
   setError({
     message:
-      laporan.status_final === "auto_submit"
-        ? "Waktu ujian habis, jawaban sudah dikumpulkan"
-        : "Ujian sudah selesai",
+      "Waktu ujian sudah habis. Jawaban telah dikumpulkan otomatis.",
     type: "warning",
   });
   setLoading(false);
   return;
-} {
+}
+
+if (laporan && laporan.status_final === "selesai") {
   setError({
-  message:
-    laporan.status_final === "auto_submit"
-      ? "Waktu ujian sudah habis. Jawaban telah dikumpulkan otomatis."
-      : "Ujian sudah selesai. Anda tidak dapat mengerjakan kembali.",
-  type: "warning",
-});
+    message:
+      "Ujian sudah selesai. Anda tidak dapat mengerjakan kembali.",
+    type: "warning",
+  });
   setLoading(false);
   return;
 }
+
 // =========================
 // 🔒 HARD LOCK KOMBINASI
 // =========================
 if (
-  siswa.status === false &&
+  !siswa.status &&
   laporan &&
   ["selesai", "auto_submit"].includes(laporan.status_final)
 ) {
