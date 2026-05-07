@@ -99,12 +99,12 @@ if (!ujian || ujian.status !== "berlangsung") {
   // 🔥 CEK STATUS UJIAN
   // =========================
   const { data: laporan } = await supabase
-    .from("laporan_ujian")
-    .select("*")
-    .eq("no_peserta", siswa.no_peserta)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  .from("laporan_ujian")
+  .select("*")
+  .eq("no_peserta", siswa.no_peserta)
+  .eq("id_asesmen", 1)
+  .eq("sesi", 1)
+  .maybeSingle();
 
   // =========================
   // 🔥 LOGIC RESUME
