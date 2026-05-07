@@ -84,7 +84,7 @@ const { data: ujian } = await supabase
   .eq("sesi", 1)
   .maybeSingle();
 
-if (!ujian || ujian.status !== "berlangsung") {
+if (!ujian || ujian.status !== "berjalan") {
   setError({
     message: "Ujian belum dimulai atau sudah selesai",
     type: "warning",
@@ -178,8 +178,8 @@ if (
     .upsert(
       {
         no_peserta: siswa.no_peserta,
-        id_asesmen: laporan?.id_asesmen || 1,
-        sesi: laporan?.sesi || 1,
+        id_asesmen: 1,
+		sesi: 1,
         status: "sedang",
         status_final: "sedang",
         pelanggaran: laporan?.pelanggaran || 0,
