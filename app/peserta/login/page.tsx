@@ -80,12 +80,17 @@ if (!siswa) {
 const { data: ujian, error: errUjian } = await supabase
   .from("ujian_aktif")
   .select("*")
-  .eq("status", "berjalan");
+  .eq("status", "berjalan")
+  .eq("sesi", 1);
 
 console.log("DATA UJIAN:", ujian);
 console.log("ERROR UJIAN:", errUjian);
 
-if (!ujian || ujian.length === 0) {
+// ambil row pertama
+const ujianAktif = ujian?.[0];
+
+// kalau tidak ada ujian aktif
+if (!ujianAktif) {
   setError({
     message: "Ujian belum dimulai atau sudah selesai",
     type: "warning",
@@ -96,7 +101,6 @@ if (!ujian || ujian.length === 0) {
 }
 
 
-
   // =========================
   // 🔥 CEK STATUS UJIAN
   // =========================
@@ -104,7 +108,7 @@ if (!ujian || ujian.length === 0) {
   .from("laporan_ujian")
   .select("*")
   .eq("no_peserta", siswa.no_peserta)
-  .eq("id_asesmen", ujian.id_asesmen)
+  .eq("id_asesmen", ujianAktif.id_asesmen)
   .eq("sesi", 1)
   .maybeSingle();
 
@@ -180,7 +184,7 @@ if (
     .upsert(
       {
         no_peserta: siswa.no_peserta,
-        id_asesmen: ujian.id_asesmen,
+        id_asesmen: ujianAktif.id_asesmen,
 		sesi: 1,
         status: "sedang",
         status_final: "sedang",
