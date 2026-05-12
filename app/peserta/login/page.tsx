@@ -77,18 +77,20 @@ if (!siswa) {
 // =========================
 // 🔥 CEK UJIAN AKTIF
 // =========================
-const { data: ujian } = await supabase
+const { data: ujian, error: errUjian } = await supabase
   .from("ujian_aktif")
   .select("*")
-  .eq("status", "berjalan")
-  .eq("sesi", 1)
-  .maybeSingle();
+  .eq("status", "berjalan");
 
-if (!ujian || ujian.status !== "berjalan") {
+console.log("DATA UJIAN:", ujian);
+console.log("ERROR UJIAN:", errUjian);
+
+if (!ujian || ujian.length === 0) {
   setError({
     message: "Ujian belum dimulai atau sudah selesai",
     type: "warning",
   });
+
   setLoading(false);
   return;
 }
