@@ -80,7 +80,7 @@ if (!siswa) {
 const { data: ujian } = await supabase
   .from("ujian_aktif")
   .select("*")
-  .eq("id_asesmen", 1) // ⚠️ nanti bisa dinamis
+  .eq("status", "berjalan")
   .eq("sesi", 1)
   .maybeSingle();
 
@@ -102,7 +102,7 @@ if (!ujian || ujian.status !== "berjalan") {
   .from("laporan_ujian")
   .select("*")
   .eq("no_peserta", siswa.no_peserta)
-  .eq("id_asesmen", 1)
+  .eq("id_asesmen", ujian.id_asesmen)
   .eq("sesi", 1)
   .maybeSingle();
 
@@ -178,7 +178,7 @@ if (
     .upsert(
       {
         no_peserta: siswa.no_peserta,
-        id_asesmen: 1,
+        id_asesmen: ujian.id_asesmen,
 		sesi: 1,
         status: "sedang",
         status_final: "sedang",
